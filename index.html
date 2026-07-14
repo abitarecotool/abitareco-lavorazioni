@@ -12,12 +12,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./css/styles.css?v=20260714_v13" />
-  <link rel="stylesheet" href="./css/modules/auth.css?v=20260714_v13" />
-  <link rel="stylesheet" href="./css/modules/dashboard.css?v=20260714_v13" />
-  <link rel="stylesheet" href="./css/modules/orders.css?v=20260714_v13" />
-  <link rel="stylesheet" href="./css/modules/admin.css?v=20260714_v13" />
-  <link rel="stylesheet" href="./css/mobile.css?v=20260714_v13" />
+  <link rel="stylesheet" href="./css/styles.css?v=20260714_v14" />
+  <link rel="stylesheet" href="./css/modules/auth.css?v=20260714_v14" />
+  <link rel="stylesheet" href="./css/modules/dashboard.css?v=20260714_v14" />
+  <link rel="stylesheet" href="./css/modules/orders.css?v=20260714_v14" />
+  <link rel="stylesheet" href="./css/modules/admin.css?v=20260714_v14" />
+  <link rel="stylesheet" href="./css/mobile.css?v=20260714_v14" />
 </head>
 <body>
   <div id="AuthPreloader" aria-hidden="true">
@@ -28,18 +28,18 @@
 
   <div id="AuthOverlay" aria-hidden="true">
     <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="AuthTitle">
-      <div class="auth-logo"><img src="./assets/logo.png" alt="Abitare Co." /></div>
-      <div class="auth-title" id="AuthTitle">Accedi a Lavorazioni</div>
-      <div class="auth-sub">Inserisci email e password per gestire le richieste interne.</div>
+      <div class="auth-icon"><img src="./assets/logo.ico" alt="" /></div>
+      <div class="auth-title" id="AuthTitle">Accedi al tuo account</div>
+      <div class="auth-sub">Inserisci email e password per entrare in Lavorazioni.</div>
       <div class="auth-form">
         <label for="AuthEmail">Email *</label>
-        <input id="AuthEmail" class="input" type="email" placeholder="nome.cognome@abitareco.it" autocomplete="username" />
+        <input id="AuthEmail" class="input" type="email" placeholder="user@abitareco.it" autocomplete="username" />
         <label for="AuthPassword">Password *</label>
         <div class="auth-password-wrap">
           <input id="AuthPassword" class="input auth-password-input" type="password" placeholder="Password" autocomplete="current-password" />
-          <button id="AuthTogglePassword" class="auth-password-toggle" type="button" aria-label="Mostra/Nascondi password">👁</button>
+          <button id="AuthTogglePassword" class="auth-password-toggle" type="button" aria-label="Mostra/Nascondi password" title="Mostra/Nascondi password">👁</button>
         </div>
-        <label class="auth-remember"><input id="AuthRemember" type="checkbox" checked /><span>Ricordami</span></label>
+        <label class="auth-remember"><input id="AuthRemember" type="checkbox" /><span>Ricordami</span></label>
         <div id="AuthError"></div>
       </div>
       <div class="auth-actions"><button id="AuthConfirm" type="button" class="btn-primary">Accedi</button></div>
@@ -70,12 +70,18 @@
         <div class="cards-scroll">
           <section id="DashboardView" class="card view">
             <div class="welcome-head">
-              <div><h2 class="welcome-title">Dashboard lavorazioni</h2><p class="welcome-sub">Panoramica ordini e stato avanzamento richieste.</p></div>
+              <div><h2 class="welcome-title">Dashboard lavorazioni</h2><p class="welcome-sub">Panoramica ordini, utenti e avanzamento lavori.</p></div>
               <div class="dash-actions"><button id="ToggleDashboardView" type="button" class="btn-outline">Vista box</button><button id="RefreshAll" type="button" class="btn-outline">Aggiorna</button></div>
             </div>
+            <div id="DashboardFilters" class="filters-grid dashboard-filters hidden">
+              <select id="DashUserFilter" class="input"><option value="">Tutti gli utenti</option></select>
+              <select id="DashStatusFilter" class="input"><option value="">Tutti gli stati</option></select>
+              <select id="DashPriorityFilter" class="input"><option value="">Tutte le priorità</option><option value="bassa">Bassa</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select>
+              <input id="DashDateFilter" class="input" type="date" title="Filtra per data creazione" />
+            </div>
             <div class="welcome-grid two">
-              <button class="welcome-card" data-go="create"><span class="card-icon">＋</span><span><strong>Crea nuovo ordine</strong><small>Invia una nuova richiesta di lavorazione.</small></span></button>
-              <button class="welcome-card" data-go="mine"><span class="card-icon">▤</span><span><strong>I miei ordini</strong><small>Controlla stato e avanzamento in tempo reale.</small></span></button>
+              <button class="welcome-card" data-go="create"><span class="card-icon"><img src="./assets/icons/icon-create-order-selected.png" alt="" onerror="this.outerHTML='+'" /></span><span><strong>Crea nuovo ordine</strong><small>Invia una nuova richiesta di lavorazione.</small></span></button>
+              <button class="welcome-card" data-go="mine"><span class="card-icon"><img src="./assets/icons/icon-my-orders-selected.png" alt="" onerror="this.outerHTML='▤'" /></span><span><strong>I miei ordini</strong><small>Controlla stato e avanzamento in tempo reale.</small></span></button>
             </div>
             <div id="DashboardCharts" class="dash-chart-grid"></div>
             <div id="DashboardStats" class="stats-grid hidden"></div>
@@ -116,7 +122,7 @@
           </section>
 
           <section id="AdminView" class="card view hidden">
-            <div class="section-head"><div><h3>Admin ordini</h3><p class="muted">Lista compatta: apri il dettaglio per modificare stato e note.</p></div><button id="RefreshAdmin" type="button" class="btn-outline">Aggiorna</button></div>
+            <div class="section-head"><div><h3>Admin ordini</h3><p class="muted">Apri il dettaglio per modificare stato, brief e dati ordine.</p></div><button id="RefreshAdmin" type="button" class="btn-outline">Aggiorna</button></div>
             <div class="filters-grid admin-filters">
               <input id="AdminSearch" class="input" placeholder="Cerca ordine, utente, oggetto, cantiere..." />
               <select id="AdminStatusFilter" class="input"><option value="">Tutti gli stati</option></select>
@@ -132,7 +138,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./js/config.js?v=20260714_v13"></script>
-  <script src="./js/app.js?v=20260714_v13"></script>
+  <script src="./js/config.js?v=20260714_v14"></script>
+  <script src="./js/app.js?v=20260714_v14"></script>
 </body>
 </html>
