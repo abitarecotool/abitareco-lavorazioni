@@ -1,53 +1,30 @@
 # Abitare Co. Lavorazioni
 
-Portale interno per richieste lavorazioni marketing/creative.
+Versione 1.3.
 
-## Stack
+## Importante
 
-- Front-end statico su GitHub Pages
-- Backend Supabase Auth + Database + RLS
-- Dominio previsto: `lavorazioni.abitareco.it`
+Questo pacchetto NON include il file CNAME, così puoi continuare a testare su:
 
-## Deploy rapido GitHub
+https://abitarecotool.github.io/abitareco-lavorazioni/
 
-1. Apri repository `abitarecotool/abitareco-lavorazioni`.
-2. Carica tutti i file contenuti in questo ZIP nella root del repository.
-3. Commit su branch `main`.
-4. Vai in `Settings > Pages`.
-5. Source: `Deploy from a branch`.
-6. Branch: `main`, folder `/root`.
-7. Custom domain: `lavorazioni.abitareco.it`.
+Quando il DNS sarà pronto, rimetti il CNAME con:
 
-## Supabase già configurato
+lavorazioni.abitareco.it
 
-Project URL:
+## Icone sidebar
 
-```text
-https://ddakythxpllinofstzuh.supabase.co
-```
+Carica le icone in assets/icons con questi nomi:
 
-Utenti iniziali:
+- icon-dashboard.png
+- icon-dashboard-selected.png
+- icon-create-order.png
+- icon-create-order-selected.png
+- icon-my-orders.png
+- icon-my-orders-selected.png
+- icon-admin-orders.png
+- icon-admin-orders-selected.png
 
-- billy.dolor@abitareco.it → admin
-- mattia.nichettistanghellini@abitareco.it → admin
-- daniela.buglione@abitareco.it → user
+## Email
 
-## Aggiungere utenti
-
-1. Supabase > Authentication > Users > Add user.
-2. Copia UID creato.
-3. Supabase > Table Editor > profiles > Insert row.
-4. Inserisci:
-   - id = UID
-   - email
-   - full_name
-   - role = `user` oppure `admin`
-   - active = `true`
-
-## Disattivare utenti
-
-Non cancellare utenti con ordini storici. Imposta `active = false` nella tabella `profiles`.
-
-## Note
-
-La prima versione salva ordini e stati su Supabase. Le email automatiche sono predisposte come step successivo tramite Supabase Edge Functions + provider email esterno.
+Le email automatiche richiedono Supabase Edge Function + provider email esterno.

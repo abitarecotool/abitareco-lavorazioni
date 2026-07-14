@@ -1,1 +1,1 @@
-.admin-filters{display:grid;grid-template-columns:260px minmax(0,1fr);gap:12px;margin-bottom:14px}.admin-actions{display:grid;grid-template-columns:190px minmax(0,1fr) minmax(0,1fr) auto;gap:10px;margin-top:12px;align-items:end}.admin-actions label{margin-bottom:6px}.admin-actions textarea{min-height:41px;resize:vertical}.admin-save{height:41px;align-self:end}.admin-user{font-size:12px;color:var(--gray-500);font-weight:800}
+.admin-filters{margin-bottom:14px}.admin .order-card{background:#fff}.admin-actions{margin-top:12px}

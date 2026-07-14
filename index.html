@@ -12,19 +12,23 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./css/styles.css?v=20260714_v12" />
-  <link rel="stylesheet" href="./css/modules/auth.css?v=20260714_1" />
-  <link rel="stylesheet" href="./css/modules/dashboard.css?v=20260714_1" />
-  <link rel="stylesheet" href="./css/modules/orders.css?v=20260714_v12" />
-  <link rel="stylesheet" href="./css/modules/admin.css?v=20260714_1" />
-  <link rel="stylesheet" href="./css/mobile.css?v=20260714_1" />
+  <link rel="stylesheet" href="./css/styles.css?v=20260714_v13" />
+  <link rel="stylesheet" href="./css/modules/auth.css?v=20260714_v13" />
+  <link rel="stylesheet" href="./css/modules/dashboard.css?v=20260714_v13" />
+  <link rel="stylesheet" href="./css/modules/orders.css?v=20260714_v13" />
+  <link rel="stylesheet" href="./css/modules/admin.css?v=20260714_v13" />
+  <link rel="stylesheet" href="./css/mobile.css?v=20260714_v13" />
 </head>
 <body>
-  <div id="AuthPreloader" aria-hidden="true"><div class="auth-bounce"><img class="preloader-logo" src="./assets/logo.ico" alt="Abitare Co." onerror="this.outerHTML='<div class=&quot;brand-mark-mini&quot;>A</div>'" /></div></div>
+  <div id="AuthPreloader" aria-hidden="true">
+    <div class="auth-bounce">
+      <img class="preloader-logo" src="./assets/logo.ico" alt="Abitare Co." onerror="this.outerHTML='<div class=&quot;brand-mark-mini&quot;>A</div>'" />
+    </div>
+  </div>
 
   <div id="AuthOverlay" aria-hidden="true">
     <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="AuthTitle">
-      <div class="auth-logo"><img src="./assets/logo.png" alt="Abitare Co." onerror="this.outerHTML='<span>Abitare</span><strong>co.</strong>'" /></div>
+      <div class="auth-logo"><img src="./assets/logo.png" alt="Abitare Co." /></div>
       <div class="auth-title" id="AuthTitle">Accedi a Lavorazioni</div>
       <div class="auth-sub">Inserisci email e password per gestire le richieste interne.</div>
       <div class="auth-form">
@@ -35,7 +39,7 @@
           <input id="AuthPassword" class="input auth-password-input" type="password" placeholder="Password" autocomplete="current-password" />
           <button id="AuthTogglePassword" class="auth-password-toggle" type="button" aria-label="Mostra/Nascondi password">👁</button>
         </div>
-        <label class="auth-remember"><input id="AuthRemember" type="checkbox" /><span>Ricordami</span></label>
+        <label class="auth-remember"><input id="AuthRemember" type="checkbox" checked /><span>Ricordami</span></label>
         <div id="AuthError"></div>
       </div>
       <div class="auth-actions"><button id="AuthConfirm" type="button" class="btn-primary">Accedi</button></div>
@@ -44,18 +48,18 @@
 
   <div id="AppRoot" class="app hidden">
     <aside class="sidebar">
-      <div class="logo-word"><img src="./assets/logo.png" alt="Abitare Co." onerror="this.outerHTML='<span>Abitare</span><strong>co.</strong>'" /></div>
+      <div class="logo-word"><img src="./assets/logo.png" alt="Abitare Co." /></div>
       <ul id="SideMenu" class="menu">
         <li data-view="dashboard" data-icon="./assets/icons/icon-dashboard.png" data-icon-active="./assets/icons/icon-dashboard-selected.png" class="active"><span class="mi"><img alt="" /><span class="mi-fallback">⌂</span></span><span class="txt">Dashboard</span></li>
         <li data-view="create" data-icon="./assets/icons/icon-create-order.png" data-icon-active="./assets/icons/icon-create-order-selected.png"><span class="mi"><img alt="" /><span class="mi-fallback">＋</span></span><span class="txt">Crea ordine</span></li>
         <li data-view="mine" data-icon="./assets/icons/icon-my-orders.png" data-icon-active="./assets/icons/icon-my-orders-selected.png"><span class="mi"><img alt="" /><span class="mi-fallback">▤</span></span><span class="txt">I miei ordini</span></li>
-        <li data-view="admin" id="AdminMenuItem" data-icon="./assets/icons/icon-admin-orders.png" data-icon-active="./assets/icons/icon-admin-orders-selected.png" class="hidden"><span class="mi"><img alt="" /><span class="mi-fallback">★</span></span><span class="txt">Admin ordini</span></li>
+        <li data-view="admin" id="AdminMenuItem" data-icon="./assets/icons/icon-admin-orders.png" data-icon-active="./assets/icons/icon-admin-orders-selected.png" class="hidden"><span class="mi"><img alt="" /><span class="mi-fallback">◎</span></span><span class="txt">Admin ordini</span></li>
       </ul>
       <div class="sidebar-bottom">
         <div id="UserMenu" class="user-menu" role="button" tabindex="0" aria-label="Menu utente">
           <div class="user-avatar" id="UserAvatar">A</div>
           <div class="user-meta"><div class="user-name" id="UserLabel">Utente</div><div class="user-role" id="UserRole">USER</div></div>
-          <div class="user-chevron" aria-hidden="true">▾</div>
+          <div class="user-chevron" aria-hidden="true">⌄</div>
         </div>
         <div id="UserDropdown" class="user-dropdown hidden"><button id="BtnLogout" type="button" class="user-logout">Esci dal tuo account</button></div>
       </div>
@@ -65,16 +69,16 @@
       <div class="content">
         <div class="cards-scroll">
           <section id="DashboardView" class="card view">
-            <div class="welcome-brand"><img class="welcome-logo" src="./assets/logo.png" alt="Abitare Co." onerror="this.outerHTML='<div class=&quot;logo-word big&quot;><span>Abitare</span><strong>co.</strong></div>'" /></div>
             <div class="welcome-head">
-              <div><h2 class="welcome-title">Cosa vuoi fare oggi?</h2><p class="welcome-sub">Portale interno per richieste lavorazioni marketing e creative.</p></div>
-              <button id="RefreshAll" type="button" class="btn-outline">Aggiorna</button>
+              <div><h2 class="welcome-title">Dashboard lavorazioni</h2><p class="welcome-sub">Panoramica ordini e stato avanzamento richieste.</p></div>
+              <div class="dash-actions"><button id="ToggleDashboardView" type="button" class="btn-outline">Vista box</button><button id="RefreshAll" type="button" class="btn-outline">Aggiorna</button></div>
             </div>
             <div class="welcome-grid two">
               <button class="welcome-card" data-go="create"><span class="card-icon">＋</span><span><strong>Crea nuovo ordine</strong><small>Invia una nuova richiesta di lavorazione.</small></span></button>
               <button class="welcome-card" data-go="mine"><span class="card-icon">▤</span><span><strong>I miei ordini</strong><small>Controlla stato e avanzamento in tempo reale.</small></span></button>
             </div>
-            <div id="DashboardStats" class="stats-grid"></div>
+            <div id="DashboardCharts" class="dash-chart-grid"></div>
+            <div id="DashboardStats" class="stats-grid hidden"></div>
           </section>
 
           <section id="CreateView" class="card view hidden">
@@ -101,14 +105,25 @@
           </section>
 
           <section id="MineView" class="card view hidden">
-            <div class="section-head"><div><h3>I miei ordini</h3><p class="muted">Clicca una card per aprire il dettaglio ordine.</p></div><button id="RefreshMine" type="button" class="btn-outline">Aggiorna</button></div>
-            <div id="MyOrdersList" class="orders-list"></div>
+            <div class="section-head"><div><h3>I miei ordini</h3><p class="muted">Lista compatta: clicca una riga per aprire il dettaglio ordine.</p></div><button id="RefreshMine" type="button" class="btn-outline">Aggiorna</button></div>
+            <div class="filters-grid mine-filters">
+              <input id="MineSearch" class="input" placeholder="Cerca ordine, oggetto, commessa, cantiere..." />
+              <select id="MineStatusFilter" class="input"><option value="">Tutti gli stati</option></select>
+              <select id="MinePriorityFilter" class="input"><option value="">Tutte le priorità</option><option value="bassa">Bassa</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select>
+              <input id="MineDateFilter" class="input" type="date" title="Filtra per data creazione" />
+            </div>
+            <div id="MyOrdersList" class="orders-list compact"></div>
           </section>
 
           <section id="AdminView" class="card view hidden">
-            <div class="section-head"><div><h3>Admin ordini</h3><p class="muted">Vista completa per Billy e Mattia: gestione stati, note e filtri.</p></div><button id="RefreshAdmin" type="button" class="btn-outline">Aggiorna</button></div>
-            <div class="admin-filters"><select id="AdminStatusFilter" class="input"><option value="">Tutti gli stati</option></select><input id="AdminSearch" class="input" placeholder="Cerca per ordine, utente, oggetto, cantiere..." /></div>
-            <div id="AdminOrdersList" class="orders-list admin"></div>
+            <div class="section-head"><div><h3>Admin ordini</h3><p class="muted">Lista compatta: apri il dettaglio per modificare stato e note.</p></div><button id="RefreshAdmin" type="button" class="btn-outline">Aggiorna</button></div>
+            <div class="filters-grid admin-filters">
+              <input id="AdminSearch" class="input" placeholder="Cerca ordine, utente, oggetto, cantiere..." />
+              <select id="AdminStatusFilter" class="input"><option value="">Tutti gli stati</option></select>
+              <select id="AdminPriorityFilter" class="input"><option value="">Tutte le priorità</option><option value="bassa">Bassa</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select>
+              <input id="AdminDateFilter" class="input" type="date" title="Filtra per data creazione" />
+            </div>
+            <div id="AdminOrdersList" class="orders-list compact admin"></div>
           </section>
         </div>
         <section class="actionbar"><div class="copyright">© 2026 Abitare Co. – Design by Abitare Co. Creative Unit – All rights reserved.</div><div id="Toast" class="toast hidden"></div></section>
@@ -117,7 +132,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./js/config.js?v=20260714_1"></script>
-  <script src="./js/app.js?v=20260714_v12"></script>
+  <script src="./js/config.js?v=20260714_v13"></script>
+  <script src="./js/app.js?v=20260714_v13"></script>
 </body>
 </html>
