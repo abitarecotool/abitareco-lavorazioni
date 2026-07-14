@@ -7,10 +7,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>Abitare Co. – Lavorazioni</title>
   <meta name="theme-color" content="#c4162b" />
+  <link rel="icon" href="./assets/logo.ico" />
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./css/styles.css?v=20260714_1" />
+  <link rel="stylesheet" href="./css/styles.css?v=20260714_logo1" />
   <link rel="stylesheet" href="./css/modules/auth.css?v=20260714_1" />
   <link rel="stylesheet" href="./css/modules/dashboard.css?v=20260714_1" />
   <link rel="stylesheet" href="./css/modules/orders.css?v=20260714_1" />
@@ -18,11 +20,17 @@
   <link rel="stylesheet" href="./css/mobile.css?v=20260714_1" />
 </head>
 <body>
-  <div id="AuthPreloader" aria-hidden="true"><div class="auth-bounce"><div class="brand-mark-mini">A</div></div></div>
+  <div id="AuthPreloader" aria-hidden="true">
+    <div class="auth-bounce">
+      <img class="preloader-logo" src="./assets/logo.ico" alt="Abitare Co." onerror="this.outerHTML='<div class=&quot;brand-mark-mini&quot;>A</div>'" />
+    </div>
+  </div>
 
   <div id="AuthOverlay" aria-hidden="true">
     <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="AuthTitle">
-      <div class="auth-logo"><span>Abitare</span><strong>co.</strong></div>
+      <div class="auth-logo">
+        <img src="./assets/logo.png" alt="Abitare Co." onerror="this.outerHTML='<span>Abitare</span><strong>co.</strong>'" />
+      </div>
       <div class="auth-title" id="AuthTitle">Accedi a Lavorazioni</div>
       <div class="auth-sub">Inserisci email e password per gestire le richieste interne.</div>
       <div class="auth-form">
@@ -42,7 +50,9 @@
 
   <div id="AppRoot" class="app hidden">
     <aside class="sidebar">
-      <div class="logo-word"><span>Abitare</span><strong>co.</strong></div>
+      <div class="logo-word">
+        <img src="./assets/logo.png" alt="Abitare Co." onerror="this.outerHTML='<span>Abitare</span><strong>co.</strong>'" />
+      </div>
       <ul id="SideMenu" class="menu">
         <li data-view="dashboard" class="active"><span class="mi">⌂</span><span class="txt">Dashboard</span></li>
         <li data-view="create"><span class="mi">＋</span><span class="txt">Crea ordine</span></li>
@@ -63,7 +73,9 @@
       <div class="content">
         <div class="cards-scroll">
           <section id="DashboardView" class="card view">
-            <div class="welcome-brand"><div class="logo-word big"><span>Abitare</span><strong>co.</strong></div></div>
+            <div class="welcome-brand">
+              <img class="welcome-logo" src="./assets/logo.png" alt="Abitare Co." onerror="this.outerHTML='<div class=&quot;logo-word big&quot;><span>Abitare</span><strong>co.</strong></div>'" />
+            </div>
             <div class="welcome-head">
               <div><h2 class="welcome-title">Cosa vuoi fare oggi?</h2><p class="welcome-sub">Portale interno per richieste lavorazioni marketing e creative.</p></div>
               <button id="RefreshAll" type="button" class="btn-outline">Aggiorna</button>
