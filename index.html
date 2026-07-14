@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="googlebot" content="noindex, nofollow" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Abitare Co. – Lavorazioni</title>
+  <meta name="theme-color" content="#c4162b" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/styles.css?v=20260714_1" />
+  <link rel="stylesheet" href="./css/modules/auth.css?v=20260714_1" />
+  <link rel="stylesheet" href="./css/modules/dashboard.css?v=20260714_1" />
+  <link rel="stylesheet" href="./css/modules/orders.css?v=20260714_1" />
+  <link rel="stylesheet" href="./css/modules/admin.css?v=20260714_1" />
+  <link rel="stylesheet" href="./css/mobile.css?v=20260714_1" />
+</head>
+<body>
+  <div id="AuthPreloader" aria-hidden="true"><div class="auth-bounce"><div class="brand-mark-mini">A</div></div></div>
+
+  <div id="AuthOverlay" aria-hidden="true">
+    <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="AuthTitle">
+      <div class="auth-logo"><span>Abitare</span><strong>co.</strong></div>
+      <div class="auth-title" id="AuthTitle">Accedi a Lavorazioni</div>
+      <div class="auth-sub">Inserisci email e password per gestire le richieste interne.</div>
+      <div class="auth-form">
+        <label for="AuthEmail">Email *</label>
+        <input id="AuthEmail" class="input" type="email" placeholder="nome.cognome@abitareco.it" autocomplete="username" />
+        <label for="AuthPassword">Password *</label>
+        <div class="auth-password-wrap">
+          <input id="AuthPassword" class="input auth-password-input" type="password" placeholder="Password" autocomplete="current-password" />
+          <button id="AuthTogglePassword" class="auth-password-toggle" type="button" aria-label="Mostra/Nascondi password">👁</button>
+        </div>
+        <label class="auth-remember"><input id="AuthRemember" type="checkbox" /><span>Ricordami</span></label>
+        <div id="AuthError"></div>
+      </div>
+      <div class="auth-actions"><button id="AuthConfirm" type="button" class="btn-primary">Accedi</button></div>
+    </div>
+  </div>
+
+  <div id="AppRoot" class="app hidden">
+    <aside class="sidebar">
+      <div class="logo-word"><span>Abitare</span><strong>co.</strong></div>
+      <ul id="SideMenu" class="menu">
+        <li data-view="dashboard" class="active"><span class="mi">⌂</span><span class="txt">Dashboard</span></li>
+        <li data-view="create"><span class="mi">＋</span><span class="txt">Crea ordine</span></li>
+        <li data-view="mine"><span class="mi">▤</span><span class="txt">I miei ordini</span></li>
+        <li data-view="admin" id="AdminMenuItem" class="hidden"><span class="mi">★</span><span class="txt">Admin ordini</span></li>
+      </ul>
+      <div class="sidebar-bottom">
+        <div id="UserMenu" class="user-menu" role="button" tabindex="0">
+          <div class="user-avatar" id="UserAvatar">A</div>
+          <div class="user-meta"><div class="user-name" id="UserLabel">Utente</div><div class="user-role" id="UserRole">user</div></div>
+          <div class="user-chevron">▾</div>
+        </div>
+        <div id="UserDropdown" class="user-dropdown hidden"><button id="BtnLogout" type="button" class="user-logout">Esci dal tuo account</button></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="content">
+        <div class="cards-scroll">
+          <section id="DashboardView" class="card view">
+            <div class="welcome-brand"><div class="logo-word big"><span>Abitare</span><strong>co.</strong></div></div>
+            <div class="welcome-head">
+              <div><h2 class="welcome-title">Cosa vuoi fare oggi?</h2><p class="welcome-sub">Portale interno per richieste lavorazioni marketing e creative.</p></div>
+              <button id="RefreshAll" type="button" class="btn-outline">Aggiorna</button>
+            </div>
+            <div class="welcome-grid two">
+              <button class="welcome-card" data-go="create"><span class="card-icon">＋</span><span><strong>Crea nuovo ordine</strong><small>Invia una nuova richiesta di lavorazione.</small></span></button>
+              <button class="welcome-card" data-go="mine"><span class="card-icon">▤</span><span><strong>I miei ordini</strong><small>Controlla stato e avanzamento in tempo reale.</small></span></button>
+            </div>
+            <div id="DashboardStats" class="stats-grid"></div>
+          </section>
+
+          <section id="CreateView" class="card view hidden">
+            <div class="section-head"><div><h3>Crea nuovo ordine</h3><p class="muted">Compila la richiesta: verrà salvata in Supabase e sarà visibile agli admin.</p></div></div>
+            <form id="OrderForm" class="order-form">
+              <div class="row">
+                <div class="form-group"><label for="RequestType">Tipologia lavorazione *</label><select id="RequestType" class="input" required></select></div>
+                <div class="form-group"><label for="Priority">Priorità</label><select id="Priority" class="input"><option value="bassa">Bassa</option><option value="media" selected>Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div>
+              </div>
+              <div class="row">
+                <div class="form-group"><label for="ProjectName">Nome progetto / cantiere</label><input id="ProjectName" class="input" placeholder="es. Mia Tower" /></div>
+                <div class="form-group"><label for="Commessa">N. Commessa</label><input id="Commessa" class="input" placeholder="es. C 3107" /></div>
+              </div>
+              <div class="row">
+                <div class="form-group"><label for="Subject">Oggetto *</label><input id="Subject" class="input" required placeholder="es. Realizzazione brochure commerciale" /></div>
+                <div class="form-group"><label for="DeliveryDate">Consegna richiesta</label><input id="DeliveryDate" class="input" type="date" /></div>
+              </div>
+              <div class="form-group"><label for="Description">Descrizione dettagliata *</label><textarea id="Description" class="input" required rows="5" placeholder="Scrivi brief, obiettivo, formati, target, materiali disponibili, scadenze..."></textarea></div>
+              <div class="fattura-divider"></div>
+              <div class="order-lines-head"><div><label>Righe lavorazione</label><p class="muted">Aggiungi una o più righe per dettagliare la richiesta.</p></div><button id="AddItemRow" type="button" class="btn-outline">Aggiungi riga</button></div>
+              <div class="orders-table"><div class="order-th"><div>Tipo</div><div>Titolo</div><div>Descrizione</div><div>Q.tà</div><div></div></div><div id="OrderItemsRows"></div></div>
+              <div class="form-actions"><button type="button" id="ResetOrderForm" class="btn-outline">Pulisci</button><button type="submit" id="SubmitOrder" class="btn-primary">Invia ordine</button></div>
+            </form>
+          </section>
+
+          <section id="MineView" class="card view hidden">
+            <div class="section-head"><div><h3>I miei ordini</h3><p class="muted">Qui trovi tutte le richieste create dal tuo account.</p></div><button id="RefreshMine" type="button" class="btn-outline">Aggiorna</button></div>
+            <div id="MyOrdersList" class="orders-list"></div>
+          </section>
+
+          <section id="AdminView" class="card view hidden">
+            <div class="section-head"><div><h3>Admin ordini</h3><p class="muted">Vista completa per Billy e Mattia: gestione stati, note e filtri.</p></div><button id="RefreshAdmin" type="button" class="btn-outline">Aggiorna</button></div>
+            <div class="admin-filters"><select id="AdminStatusFilter" class="input"><option value="">Tutti gli stati</option></select><input id="AdminSearch" class="input" placeholder="Cerca per ordine, utente, oggetto, cantiere..." /></div>
+            <div id="AdminOrdersList" class="orders-list admin"></div>
+          </section>
+        </div>
+        <section class="actionbar"><div class="copyright">© 2026 Abitare Co. – Design by Abitare Co. Creative Unit – All rights reserved.</div><div id="Toast" class="toast hidden"></div></section>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/config.js?v=20260714_1"></script>
+  <script src="./js/app.js?v=20260714_1"></script>
+</body>
+</html>
