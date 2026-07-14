@@ -27,19 +27,30 @@
   function showAuth(show){ $('#AuthOverlay').classList.toggle('hidden', !show); $('#AppRoot').classList.toggle('hidden', show); }
   function setLoading(show){ $('#AuthPreloader').classList.toggle('hidden', !show); }
 
+  function syncMenuIcons(){
+    $$('#SideMenu li').forEach(li => {
+      const img = li.querySelector('.mi img');
+      if(!img) return;
+      const src = li.classList.contains('active') ? li.dataset.iconActive : li.dataset.icon;
+      img.onerror = () => { img.style.display = 'none'; const fb = li.querySelector('.mi-fallback'); if(fb) fb.style.display = 'inline'; };
+      img.onload = () => { img.style.display = 'block'; const fb = li.querySelector('.mi-fallback'); if(fb) fb.style.display = 'none'; };
+      img.src = src || '';
+    });
+  }
+
   async function loadProfile(){
     const { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
     if(error) throw error;
     profile = data;
     if(profile.active === false){ await supabase.auth.signOut(); throw new Error('Account disattivato. Contatta Billy o Mattia.'); }
     $('#UserLabel').textContent = profile.full_name || profile.email;
-    $('#UserRole').textContent = profile.role;
+    $('#UserRole').textContent = (profile.role || 'user').toUpperCase();
     $('#UserAvatar').textContent = (profile.full_name || profile.email || 'A').trim().slice(0,1).toUpperCase();
     $('#AdminMenuItem').classList.toggle('hidden', profile.role !== 'admin');
   }
 
   async function init(){
-    fillSelects(); bindUI(); addItemRow();
+    fillSelects(); bindUI(); addItemRow(); syncMenuIcons();
     const { data } = await supabase.auth.getSession();
     session = data.session;
     setTimeout(()=>setLoading(false), 450);
@@ -55,7 +66,6 @@
   }
 
   function fillSelects(){
-    const req=$('#RequestType'); req.innerHTML = TYPES.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
     const sf=$('#AdminStatusFilter'); sf.innerHTML = '<option value="">Tutti gli stati</option>' + Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
   }
 
@@ -91,6 +101,7 @@
     const map={dashboard:'#DashboardView',create:'#CreateView',mine:'#MineView',admin:'#AdminView'};
     $(map[view]||map.dashboard).classList.remove('hidden');
     $$('#SideMenu li').forEach(li=>li.classList.toggle('active', li.dataset.view===view));
+    syncMenuIcons();
     if(view==='mine') renderMine();
     if(view==='admin') renderAdmin();
   }
@@ -116,9 +127,10 @@
   async function submitOrder(e){
     e.preventDefault();
     const items=getItems();
+    const firstType = items[0]?.item_type || 'Altro';
     const payload={
       user_id: session.user.id,
-      request_type: $('#RequestType').value,
+      request_type: firstType,
       project_name: $('#ProjectName').value.trim() || null,
       commessa: $('#Commessa').value.trim() || null,
       subject: $('#Subject').value.trim(),
@@ -154,6 +166,7 @@
     if(error){ box.innerHTML=`<div class="empty">Errore: ${esc(error.message)}</div>`; return; }
     const itemsByOrder = await fetchItems((data||[]).map(o=>o.id));
     box.innerHTML = data?.length ? data.map(o=>orderCard(o, itemsByOrder[o.id]||[], false)).join('') : '<div class="empty">Non hai ancora creato ordini.</div>';
+    bindOrderAccordions();
   }
 
   async function renderAdmin(){
@@ -181,11 +194,23 @@
     $$('#AdminOrdersList .admin-save').forEach(btn=>btn.addEventListener('click',()=>saveAdminOrder(btn.dataset.id)));
   }
 
+  function bindOrderAccordions(){
+    $$('#MyOrdersList .order-summary').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const card = btn.closest('.order-card');
+        card.classList.toggle('is-open');
+      });
+    });
+  }
+
   function orderCard(o, items, isAdmin){
     const user = isAdmin ? `<div class="admin-user">${esc(o.profile?.full_name || 'Utente')} · ${esc(o.profile?.email || o.user_id)}</div>` : '';
     const itemHtml = items.length ? `<div class="items-mini"><strong>Righe:</strong><ul>${items.map(i=>`<li>${esc(i.quantity)}× ${esc(i.item_title)} <span class="muted">(${esc(i.item_type)})</span></li>`).join('')}</ul></div>` : '';
     const adminHtml = isAdmin ? `<div class="admin-actions"><div><label>Stato</label><select class="input admin-status" data-id="${o.id}">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${o.status===k?'selected':''}>${v.label}</option>`).join('')}</select></div><div><label>Nota visibile</label><textarea class="input admin-public" data-id="${o.id}" placeholder="Nota per utente">${esc(o.public_note||'')}</textarea></div><div><label>Nota interna</label><textarea class="input admin-internal" data-id="${o.id}" placeholder="Nota interna admin">${esc(o.internal_note||'')}</textarea></div><button type="button" class="btn-primary admin-save" data-id="${o.id}">Salva</button></div>` : '';
-    return `<article class="order-card"><div class="order-card-top"><div><div class="order-number">${esc(o.order_number)}</div><div class="order-title">${esc(o.subject)}</div>${user}</div><div>${statusBadge(o.status)}</div></div><div class="order-meta">${priorityBadge(o.priority)}<span class="status-badge status-inviato">${esc(o.request_type)}</span></div><p class="order-desc">${esc(o.description)}</p><div class="detail-grid"><div><small>Progetto/Cantiere</small><strong>${esc(o.project_name||'—')}</strong></div><div><small>Commessa</small><strong>${esc(o.commessa||'—')}</strong></div><div><small>Consegna richiesta</small><strong>${esc(o.requested_delivery_date ? fmtDate(o.requested_delivery_date) : '—')}</strong></div><div><small>Creato il</small><strong>${esc(fmtDate(o.created_at))}</strong></div></div>${o.public_note?`<div class="items-mini"><strong>Nota admin:</strong><p class="muted">${esc(o.public_note)}</p></div>`:''}${itemHtml}<div class="order-footer">${progress(o.status)}<span class="muted">${STATUS[o.status]?.pct||10}%</span></div>${adminHtml}</article>`;
+    const openClass = isAdmin ? ' admin-card is-open' : '';
+    const summary = `<button type="button" class="order-summary"><div class="order-summary-main"><div class="order-number">${esc(o.order_number)}</div><div class="order-title">${esc(o.subject)}</div>${user}<div class="summary-mini">${priorityBadge(o.priority)}<span class="status-badge status-inviato">${esc(o.request_type)}</span></div><div class="summary-project">${esc(o.project_name||'—')} ${o.commessa ? '· ' + esc(o.commessa) : ''}</div></div><div class="order-summary-right">${statusBadge(o.status)}${!isAdmin?'<span class="order-chevron">⌄</span>':''}</div></button>`;
+    const detail = `<div class="order-detail"><p class="order-desc">${esc(o.description)}</p><div class="detail-grid"><div><small>Progetto/Cantiere</small><strong>${esc(o.project_name||'—')}</strong></div><div><small>Commessa</small><strong>${esc(o.commessa||'—')}</strong></div><div><small>Consegna richiesta</small><strong>${esc(o.requested_delivery_date ? fmtDate(o.requested_delivery_date) : '—')}</strong></div><div><small>Creato il</small><strong>${esc(fmtDate(o.created_at))}</strong></div></div>${o.public_note?`<div class="items-mini"><strong>Nota admin:</strong><p class="muted">${esc(o.public_note)}</p></div>`:''}${itemHtml}<div class="order-footer">${progress(o.status)}<span class="muted">${STATUS[o.status]?.pct||10}%</span></div>${adminHtml}</div>`;
+    return `<article class="order-card${openClass}">${summary}${detail}</article>`;
   }
 
   async function saveAdminOrder(id){
