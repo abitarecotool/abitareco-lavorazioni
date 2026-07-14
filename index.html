@@ -12,20 +12,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./css/styles.css?v=20260714_v14" />
-  <link rel="stylesheet" href="./css/modules/auth.css?v=20260714_v14" />
-  <link rel="stylesheet" href="./css/modules/dashboard.css?v=20260714_v14" />
-  <link rel="stylesheet" href="./css/modules/orders.css?v=20260714_v14" />
-  <link rel="stylesheet" href="./css/modules/admin.css?v=20260714_v14" />
-  <link rel="stylesheet" href="./css/mobile.css?v=20260714_v14" />
+  <link rel="stylesheet" href="./css/styles.css?v=20260714_v16" />
+  <link rel="stylesheet" href="./css/modules/auth.css?v=20260714_v16" />
+  <link rel="stylesheet" href="./css/modules/dashboard.css?v=20260714_v16" />
+  <link rel="stylesheet" href="./css/modules/orders.css?v=20260714_v16" />
+  <link rel="stylesheet" href="./css/modules/admin.css?v=20260714_v16" />
+  <link rel="stylesheet" href="./css/mobile.css?v=20260714_v16" />
 </head>
 <body>
-  <div id="AuthPreloader" aria-hidden="true">
-    <div class="auth-bounce">
-      <img class="preloader-logo" src="./assets/logo.ico" alt="Abitare Co." onerror="this.outerHTML='<div class=&quot;brand-mark-mini&quot;>A</div>'" />
-    </div>
-  </div>
-
+  <div id="AuthPreloader" aria-hidden="true"><div class="auth-bounce"><img class="preloader-logo" src="./assets/logo.ico" alt="Abitare Co." /></div></div>
   <div id="AuthOverlay" aria-hidden="true">
     <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="AuthTitle">
       <div class="auth-icon"><img src="./assets/logo.ico" alt="" /></div>
@@ -35,10 +30,7 @@
         <label for="AuthEmail">Email *</label>
         <input id="AuthEmail" class="input" type="email" placeholder="user@abitareco.it" autocomplete="username" />
         <label for="AuthPassword">Password *</label>
-        <div class="auth-password-wrap">
-          <input id="AuthPassword" class="input auth-password-input" type="password" placeholder="Password" autocomplete="current-password" />
-          <button id="AuthTogglePassword" class="auth-password-toggle" type="button" aria-label="Mostra/Nascondi password" title="Mostra/Nascondi password">👁</button>
-        </div>
+        <div class="auth-password-wrap"><input id="AuthPassword" class="input auth-password-input" type="password" placeholder="Password" autocomplete="current-password" /><button id="AuthTogglePassword" class="auth-password-toggle" type="button" aria-label="Mostra/Nascondi password">👁</button></div>
         <label class="auth-remember"><input id="AuthRemember" type="checkbox" /><span>Ricordami</span></label>
         <div id="AuthError"></div>
       </div>
@@ -55,90 +47,21 @@
         <li data-view="mine" data-icon="./assets/icons/icon-my-orders.png" data-icon-active="./assets/icons/icon-my-orders-selected.png"><span class="mi"><img alt="" /><span class="mi-fallback">▤</span></span><span class="txt">I miei ordini</span></li>
         <li data-view="admin" id="AdminMenuItem" data-icon="./assets/icons/icon-admin-orders.png" data-icon-active="./assets/icons/icon-admin-orders-selected.png" class="hidden"><span class="mi"><img alt="" /><span class="mi-fallback">◎</span></span><span class="txt">Admin ordini</span></li>
       </ul>
-      <div class="sidebar-bottom">
-        <div id="UserMenu" class="user-menu" role="button" tabindex="0" aria-label="Menu utente">
-          <div class="user-avatar" id="UserAvatar">A</div>
-          <div class="user-meta"><div class="user-name" id="UserLabel">Utente</div><div class="user-role" id="UserRole">USER</div></div>
-          <div class="user-chevron" aria-hidden="true">⌄</div>
-        </div>
-        <div id="UserDropdown" class="user-dropdown hidden"><button id="BtnLogout" type="button" class="user-logout">Esci dal tuo account</button></div>
-      </div>
+      <div class="sidebar-bottom"><div id="UserMenu" class="user-menu" role="button" tabindex="0"><div class="user-avatar" id="UserAvatar">A</div><div class="user-meta"><div class="user-name" id="UserLabel">Utente</div><div class="user-role" id="UserRole">USER</div></div><div class="user-chevron">⌄</div></div><div id="UserDropdown" class="user-dropdown hidden"><button id="BtnLogout" type="button" class="user-logout">Esci dal tuo account</button></div></div>
     </aside>
+    <main><div class="content"><div class="cards-scroll">
+      <section id="DashboardView" class="card view">
+        <div class="welcome-head"><div><h2 class="welcome-title">Dashboard lavorazioni</h2><p class="welcome-sub">Panoramica ordini, utenti e avanzamento lavori.</p></div><div class="dash-actions"><button id="ToggleDashboardView" type="button" class="btn-outline">Vista box</button><button id="RefreshAll" type="button" class="btn-outline">Aggiorna</button></div></div>
+        <div id="DashboardFilters" class="filters-grid dashboard-filters hidden"><select id="DashUserFilter" class="input"><option value="">Tutti gli utenti</option></select><select id="DashStatusFilter" class="input"><option value="">Tutti gli stati</option></select><select id="DashPriorityFilter" class="input"><option value="">Tutte le priorità</option><option value="bassa">Bassa</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select><input id="DashDateFilter" class="input" type="date" title="Filtra per data creazione" /></div>
+        <div class="welcome-grid two"><button class="welcome-card" data-go="create"><span class="card-icon"><img src="./assets/icons/icon-create-order-selected.png" alt="" onerror="this.outerHTML='+'" /></span><span><strong>Crea nuovo ordine</strong><small>Invia una nuova richiesta di lavorazione.</small></span></button><button class="welcome-card" data-go="mine"><span class="card-icon"><img src="./assets/icons/icon-my-orders-selected.png" alt="" onerror="this.outerHTML='▤'" /></span><span><strong>I miei ordini</strong><small>Controlla stato e avanzamento in tempo reale.</small></span></button></div>
+        <div id="DashboardCharts" class="dash-chart-grid"></div><div id="DashboardStats" class="stats-grid hidden"></div>
+      </section>
 
-    <main>
-      <div class="content">
-        <div class="cards-scroll">
-          <section id="DashboardView" class="card view">
-            <div class="welcome-head">
-              <div><h2 class="welcome-title">Dashboard lavorazioni</h2><p class="welcome-sub">Panoramica ordini, utenti e avanzamento lavori.</p></div>
-              <div class="dash-actions"><button id="ToggleDashboardView" type="button" class="btn-outline">Vista box</button><button id="RefreshAll" type="button" class="btn-outline">Aggiorna</button></div>
-            </div>
-            <div id="DashboardFilters" class="filters-grid dashboard-filters hidden">
-              <select id="DashUserFilter" class="input"><option value="">Tutti gli utenti</option></select>
-              <select id="DashStatusFilter" class="input"><option value="">Tutti gli stati</option></select>
-              <select id="DashPriorityFilter" class="input"><option value="">Tutte le priorità</option><option value="bassa">Bassa</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select>
-              <input id="DashDateFilter" class="input" type="date" title="Filtra per data creazione" />
-            </div>
-            <div class="welcome-grid two">
-              <button class="welcome-card" data-go="create"><span class="card-icon"><img src="./assets/icons/icon-create-order-selected.png" alt="" onerror="this.outerHTML='+'" /></span><span><strong>Crea nuovo ordine</strong><small>Invia una nuova richiesta di lavorazione.</small></span></button>
-              <button class="welcome-card" data-go="mine"><span class="card-icon"><img src="./assets/icons/icon-my-orders-selected.png" alt="" onerror="this.outerHTML='▤'" /></span><span><strong>I miei ordini</strong><small>Controlla stato e avanzamento in tempo reale.</small></span></button>
-            </div>
-            <div id="DashboardCharts" class="dash-chart-grid"></div>
-            <div id="DashboardStats" class="stats-grid hidden"></div>
-          </section>
-
-          <section id="CreateView" class="card view hidden">
-            <div class="section-head"><div><h3>Crea nuovo ordine</h3><p class="muted">Compila la richiesta: verrà salvata in Supabase e sarà visibile agli admin.</p></div></div>
-            <form id="OrderForm" class="order-form">
-              <div class="row">
-                <div class="form-group"><label for="OrderAutoNumber">Numero ordine</label><input id="OrderAutoNumber" class="input" type="text" readonly value="Generato automaticamente" /></div>
-                <div class="form-group"><label for="Priority">Priorità</label><select id="Priority" class="input"><option value="bassa">Bassa</option><option value="media" selected>Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div>
-              </div>
-              <div class="row">
-                <div class="form-group"><label for="ProjectName">Nome progetto / cantiere</label><input id="ProjectName" class="input" placeholder="es. Mia Tower" /></div>
-                <div class="form-group"><label for="Commessa">N. Commessa</label><input id="Commessa" class="input" placeholder="es. C 3107" /></div>
-              </div>
-              <div class="row">
-                <div class="form-group"><label for="Subject">Oggetto *</label><input id="Subject" class="input" required placeholder="es. Realizzazione brochure commerciale" /></div>
-                <div class="form-group"><label for="DeliveryDate">Consegna richiesta</label><input id="DeliveryDate" class="input" type="date" /></div>
-              </div>
-              <div class="form-group"><label for="Description">Descrizione dettagliata *</label><textarea id="Description" class="input" required rows="5" placeholder="Scrivi brief, obiettivo, formati, target, materiali disponibili, scadenze..."></textarea></div>
-              <div class="fattura-divider"></div>
-              <div class="order-lines-head"><div><label>Righe lavorazione</label><p class="muted">Aggiungi una o più righe per dettagliare la richiesta.</p></div><button id="AddItemRow" type="button" class="btn-outline">Aggiungi riga</button></div>
-              <div class="orders-table"><div class="order-th"><div>Tipo</div><div>Titolo</div><div>Descrizione</div><div>Q.tà</div><div></div></div><div id="OrderItemsRows"></div></div>
-              <div class="form-actions"><button type="button" id="ResetOrderForm" class="btn-outline">Pulisci</button><button type="submit" id="SubmitOrder" class="btn-primary">Invia ordine</button></div>
-            </form>
-          </section>
-
-          <section id="MineView" class="card view hidden">
-            <div class="section-head"><div><h3>I miei ordini</h3><p class="muted">Lista compatta: clicca una riga per aprire il dettaglio ordine.</p></div><button id="RefreshMine" type="button" class="btn-outline">Aggiorna</button></div>
-            <div class="filters-grid mine-filters">
-              <input id="MineSearch" class="input" placeholder="Cerca ordine, oggetto, commessa, cantiere..." />
-              <select id="MineStatusFilter" class="input"><option value="">Tutti gli stati</option></select>
-              <select id="MinePriorityFilter" class="input"><option value="">Tutte le priorità</option><option value="bassa">Bassa</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select>
-              <input id="MineDateFilter" class="input" type="date" title="Filtra per data creazione" />
-            </div>
-            <div id="MyOrdersList" class="orders-list compact"></div>
-          </section>
-
-          <section id="AdminView" class="card view hidden">
-            <div class="section-head"><div><h3>Admin ordini</h3><p class="muted">Apri il dettaglio per modificare stato, brief e dati ordine.</p></div><button id="RefreshAdmin" type="button" class="btn-outline">Aggiorna</button></div>
-            <div class="filters-grid admin-filters">
-              <input id="AdminSearch" class="input" placeholder="Cerca ordine, utente, oggetto, cantiere..." />
-              <select id="AdminStatusFilter" class="input"><option value="">Tutti gli stati</option></select>
-              <select id="AdminPriorityFilter" class="input"><option value="">Tutte le priorità</option><option value="bassa">Bassa</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select>
-              <input id="AdminDateFilter" class="input" type="date" title="Filtra per data creazione" />
-            </div>
-            <div id="AdminOrdersList" class="orders-list compact admin"></div>
-          </section>
-        </div>
-        <section class="actionbar"><div class="copyright">© 2026 Abitare Co. – Design by Abitare Co. Creative Unit – All rights reserved.</div><div id="Toast" class="toast hidden"></div></section>
-      </div>
-    </main>
+      <section id="CreateView" class="card view hidden"><div class="section-head"><div><h3>Crea nuovo ordine</h3><p class="muted">Compila la richiesta: verrà salvata in Supabase e sarà visibile agli admin.</p></div></div><form id="OrderForm" class="order-form"><div class="row"><div class="form-group"><label for="OrderAutoNumber">Numero ordine</label><input id="OrderAutoNumber" class="input" type="text" readonly value="Generato automaticamente" /></div><div class="form-group"><label for="Priority">Priorità</label><select id="Priority" class="input"><option value="bassa">Bassa</option><option value="media" selected>Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div></div><div class="row"><div class="form-group"><label for="ProjectName">Nome progetto / cantiere</label><input id="ProjectName" class="input" placeholder="es. Mia Tower" /></div><div class="form-group"><label for="Commessa">N. Commessa</label><input id="Commessa" class="input" placeholder="es. C 3107" /></div></div><div class="row"><div class="form-group"><label for="Subject">Oggetto *</label><input id="Subject" class="input" required placeholder="es. Realizzazione brochure commerciale" /></div><div class="form-group"><label for="DeliveryDate">Consegna richiesta</label><input id="DeliveryDate" class="input" type="date" /></div></div><div class="form-group"><label for="Description">Descrizione dettagliata *</label><textarea id="Description" class="input" required rows="5" placeholder="Scrivi brief, obiettivo, formati, target, materiali disponibili, scadenze..."></textarea></div><div class="fattura-divider"></div><div class="order-lines-head"><div><label>Righe lavorazione</label><p class="muted">Aggiungi una o più righe per dettagliare la richiesta.</p></div><button id="AddItemRow" type="button" class="btn-outline">Aggiungi riga</button></div><div class="orders-table"><div class="order-th"><div>Tipo</div><div>Titolo</div><div>Descrizione</div><div>Q.tà</div><div></div></div><div id="OrderItemsRows"></div></div><div class="form-actions"><button type="button" id="ResetOrderForm" class="btn-outline">Pulisci</button><button type="submit" id="SubmitOrder" class="btn-primary">Invia ordine</button></div></form></section>
+      <section id="MineView" class="card view hidden"><div class="section-head"><div><h3>I miei ordini</h3><p class="muted">Lista compatta: clicca una riga per aprire il dettaglio ordine.</p></div><button id="RefreshMine" type="button" class="btn-outline">Aggiorna</button></div><div class="filters-grid mine-filters"><input id="MineSearch" class="input" placeholder="Cerca ordine, oggetto, commessa, cantiere..." /><select id="MineStatusFilter" class="input"><option value="">Tutti gli stati</option></select><select id="MinePriorityFilter" class="input"><option value="">Tutte le priorità</option><option value="bassa">Bassa</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select><input id="MineDateFilter" class="input" type="date" /></div><div id="MyOrdersList" class="orders-list compact"></div></section>
+      <section id="AdminView" class="card view hidden"><div class="section-head"><div><h3>Admin ordini</h3><p class="muted">Apri il dettaglio per modificare stato, brief e dati ordine.</p></div><button id="RefreshAdmin" type="button" class="btn-outline">Aggiorna</button></div><div class="filters-grid admin-filters"><input id="AdminSearch" class="input" placeholder="Cerca ordine, utente, oggetto, cantiere..." /><select id="AdminStatusFilter" class="input"><option value="">Tutti gli stati</option></select><select id="AdminPriorityFilter" class="input"><option value="">Tutte le priorità</option><option value="bassa">Bassa</option><option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select><input id="AdminDateFilter" class="input" type="date" /></div><div id="AdminOrdersList" class="orders-list compact admin"></div></section>
+    </div><section class="actionbar"><div class="copyright">© 2026 Abitare Co. – Design by Abitare Co. Creative Unit – All rights reserved.</div><div id="Toast" class="toast hidden"></div></section></div></main>
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./js/config.js?v=20260714_v14"></script>
-  <script src="./js/app.js?v=20260714_v14"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./js/config.js?v=20260714_v16"></script><script src="./js/app.js?v=20260714_v16"></script>
 </body>
 </html>
