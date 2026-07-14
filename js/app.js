@@ -25,7 +25,40 @@
   function navigate(view){if(view==='admin'&&profile?.role!=='admin')return; $$('.view').forEach(v=>v.classList.add('hidden')); const map={dashboard:'#DashboardView',create:'#CreateView',mine:'#MineView',admin:'#AdminView'}; $(map[view]||map.dashboard).classList.remove('hidden'); $$('#SideMenu li').forEach(li=>li.classList.toggle('active',li.dataset.view===view)); syncMenuIcons(); if(view==='mine')renderMine(); if(view==='admin')renderAdmin(); if(view==='dashboard')renderStats()}
   function addItemRow(data={}){const wrap=document.createElement('div'); wrap.className='order-row'; wrap.innerHTML=`<select class="input item-type">${TYPES.map(t=>`<option ${data.item_type===t?'selected':''}>${esc(t)}</option>`).join('')}</select><input class="input item-title" placeholder="Titolo" value="${esc(data.item_title||'')}" /><input class="input item-desc" placeholder="Descrizione opzionale" value="${esc(data.item_description||'')}" /><input class="input item-qty" type="number" min="1" value="${esc(data.quantity||1)}" /><button type="button" class="row-delete">×</button>`; wrap.querySelector('.row-delete').addEventListener('click',()=>{wrap.remove(); if(!$('#OrderItemsRows').children.length)addItemRow()}); $('#OrderItemsRows').appendChild(wrap)}
   function getItems(){return $$('#OrderItemsRows .order-row').map(r=>({item_type:r.querySelector('.item-type').value,item_title:r.querySelector('.item-title').value.trim(),item_description:r.querySelector('.item-desc').value.trim(),quantity:Number(r.querySelector('.item-qty').value||1)})).filter(x=>x.item_title)} function resetOrderForm(){$('#OrderForm').reset(); $('#Priority').value='media'; $('#OrderItemsRows').innerHTML=''; addItemRow()}
-  async function submitOrder(e){e.preventDefault(); const items=getItems(),firstType=items[0]?.item_type||'Altro'; const payload={user_id:session.user.id,request_type:firstType,project_name:$('#ProjectName').value.trim()||null,commessa:$('#Commessa').value.trim()||null,subject:$('#Subject').value.trim(),description:$('#Description').value.trim(),priority:$('#Priority').value,requested_delivery_date:$('#DeliveryDate').value||null,status:'inviato'}; if(!payload.subject||!payload.description){toast('Compila oggetto e descrizione.');return} $('#SubmitOrder').disabled=true; $('#SubmitOrder').textContent='Invio...'; try{const {data:order,error}=await supabase.from('orders').insert(payload).select('*').single(); if(error)throw error; if(items.length){const {error:itemErr}=await supabase.from('order_items').insert(items.map(it=>({...it,order_id:order.id}))); if(itemErr)throw itemErr} resetOrderForm(); toast(`Ordine ${order.order_number} creato correttamente.`); navigate('mine')}catch(err){toast('Errore creazione ordine: '+(err.message||err))}finally{$('#SubmitOrder').disabled=false; $('#SubmitOrder').textContent='Invia ordine'}}
+  async function notifyZapierOrderCreated(order, items, sourcePayload){
+    const url = cfg.ZAPIER_NEW_ORDER_WEBHOOK_URL;
+    if(!url) return;
+    try{
+      const firstItem = items[0] || {};
+      const flat = {
+        event_type: 'order_created',
+        order_id: order.id || '',
+        order_number: order.order_number || '',
+        subject: order.subject || sourcePayload.subject || '',
+        description: order.description || sourcePayload.description || '',
+        status: order.status || 'inviato',
+        status_label: STATUS[order.status || 'inviato']?.label || 'Inviato',
+        priority: order.priority || sourcePayload.priority || 'media',
+        priority_label: PRIORITY_LABELS[order.priority || sourcePayload.priority || 'media'] || 'Media',
+        request_type: firstItem.item_type || order.request_type || sourcePayload.request_type || '',
+        project_name: order.project_name || sourcePayload.project_name || '',
+        commessa: order.commessa || sourcePayload.commessa || '',
+        requested_delivery_date: order.requested_delivery_date || sourcePayload.requested_delivery_date || '',
+        created_at: order.created_at || new Date().toISOString(),
+        user_name: profile?.full_name || profile?.email || session?.user?.email || '',
+        user_email: profile?.email || session?.user?.email || '',
+        item_count: String(items.length || 0),
+        items_summary: items.map(it => `${it.quantity || 1} x ${it.item_title || ''} (${it.item_type || ''})`).join(' | '),
+        portal_url: location.origin + location.pathname,
+        admin_emails: (cfg.NOTIFY_EMAILS || []).join(',')
+      };
+      const body = new URLSearchParams(flat);
+      await fetch(url, { method: 'POST', mode: 'no-cors', body });
+    } catch(err){
+      console.warn('Zapier notification failed', err);
+    }
+  }
+  async function submitOrder(e){e.preventDefault(); const items=getItems(),firstType=items[0]?.item_type||'Altro'; const payload={user_id:session.user.id,request_type:firstType,project_name:$('#ProjectName').value.trim()||null,commessa:$('#Commessa').value.trim()||null,subject:$('#Subject').value.trim(),description:$('#Description').value.trim(),priority:$('#Priority').value,requested_delivery_date:$('#DeliveryDate').value||null,status:'inviato'}; if(!payload.subject||!payload.description){toast('Compila oggetto e descrizione.');return} $('#SubmitOrder').disabled=true; $('#SubmitOrder').textContent='Invio...'; try{const {data:order,error}=await supabase.from('orders').insert(payload).select('*').single(); if(error)throw error; if(items.length){const {error:itemErr}=await supabase.from('order_items').insert(items.map(it=>({...it,order_id:order.id}))); if(itemErr)throw itemErr} await notifyZapierOrderCreated(order, items, payload); resetOrderForm(); toast(`Ordine ${order.order_number} creato correttamente.`); navigate('mine')}catch(err){toast('Errore creazione ordine: '+(err.message||err))}finally{$('#SubmitOrder').disabled=false; $('#SubmitOrder').textContent='Invia ordine'}}
   async function fetchItems(ids){if(!ids.length)return {}; const {data}=await supabase.from('order_items').select('*').in('order_id',ids).order('created_at'); return (data||[]).reduce((a,it)=>{(a[it.order_id] ||= []).push(it); return a},{})} async function fetchProfiles(ids){if(!ids.length)return {}; const {data:p}=await supabase.from('profiles').select('*').in('id',ids); return (p||[]).reduce((a,x)=>{a[x.id]=x; return a},{})}
   async function renderMine(){const box=$('#MyOrdersList'); box.innerHTML='<div class="empty">Caricamento ordini...</div>'; const {data,error}=await supabase.from('orders').select('*').order('created_at',{ascending:false}); if(error){box.innerHTML=`<div class="empty">Errore: ${esc(error.message)}</div>`;return} const items=await fetchItems((data||[]).map(o=>o.id)); myOrdersCache=(data||[]).map(o=>({...o,items:items[o.id]||[]})); drawMineList()}
   function filterRows(rows,scope){const q=$('#'+scope+'Search')?.value.trim().toLowerCase()||'',st=$('#'+scope+'StatusFilter')?.value||'',pr=$('#'+scope+'PriorityFilter')?.value||'',dt=$('#'+scope+'DateFilter')?.value||'',user=$('#'+scope+'UserFilter')?.value||''; return rows.filter(o=>{const hay=[o.order_number,o.subject,o.project_name,o.commessa,o.request_type,o.profile?.email,o.profile?.full_name].join(' ').toLowerCase(); return(!q||hay.includes(q))&&(!st||o.status===st)&&(!pr||o.priority===pr)&&(!dt||dateKey(o.created_at)===dt)&&(!user||o.user_id===user)})}
