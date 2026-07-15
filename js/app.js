@@ -57,19 +57,22 @@
   function statusBadge(st){ const v=STATUS[st] || STATUS.inviato; return `<span class="status-badge status-${st || 'inviato'}">${v.label}</span>`; }
   function progress(st){ const v=STATUS[st] || STATUS.inviato; return `<div class="progressbar progress-${st || 'inviato'}"><span style="width:${v.pct}%"></span></div>`; }
   function workByLabel(label){ return WORK_TYPES.find(w => w.label === label) || WORK_TYPES[WORK_TYPES.length - 1]; }
+  function userProfiles(){ return profiles.filter(p => p.role !== 'admin'); }
 
   function syncMenuIcons(){
     $$('#SideMenu li').forEach(li => {
       const img = li.querySelector('.mi img'); const fb = li.querySelector('.mi-fallback'); if(!img) return;
-      img.onerror = () => { img.style.display='none'; if(fb) fb.style.display='inline'; };
-      img.onload = () => { img.style.display='block'; if(fb) fb.style.display='none'; };
+      img.onerror=()=>{img.style.display='none'; if(fb) fb.style.display='inline';};
+      img.onload=()=>{img.style.display='block'; if(fb) fb.style.display='none';};
       img.src = li.classList.contains('active') ? li.dataset.iconActive : li.dataset.icon;
     });
   }
 
   async function init(){
     fillStatusSelects(); bindUI(); renderWorkTypes(); syncDashboardMode(); syncMenuIcons(); ensureCartWidget();
-    const { data } = await supabase.auth.getSession(); session = data.session; setTimeout(() => setLoading(false), 400);
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+    setTimeout(() => setLoading(false), 400);
     if(!session){ showAuth(true); return; }
     try{ await loadProfile(); await loadProfiles(); showAuth(false); await refreshAll(); }
     catch(e){ console.error(e); showAuth(true); $('#AuthError').textContent = e.message || 'Errore caricamento sessione.'; }
@@ -98,6 +101,7 @@
   async function loadProfiles(){
     const { data, error } = await supabase.from('profiles').select('*').eq('active', true).order('full_name');
     profiles = error ? [] : asArray(data);
+    renderAdminOwnerPicker();
     renderCollabPicker();
   }
 
@@ -125,7 +129,7 @@
   }
 
   async function login(){
-    $('#AuthError').textContent = '';
+    $('#AuthError').textContent='';
     const email=$('#AuthEmail').value.trim(); const password=$('#AuthPassword').value;
     if(!email || !password){ $('#AuthError').textContent='Inserisci email e password.'; return; }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -138,220 +142,146 @@
   }
 
   function navigate(view){
-    if(view === 'admin' && profile?.role !== 'admin') return;
-    if(view === 'mine' && profile?.role === 'admin') view = 'admin';
-    $$('.view').forEach(v => v.classList.add('hidden'));
-    const map = { dashboard:'#DashboardView', create:'#CreateView', mine:'#MineView', admin:'#AdminView' };
-    $(map[view] || map.dashboard).classList.remove('hidden');
-    $$('#SideMenu li').forEach(li => li.classList.toggle('active', li.dataset.view === view));
+    if(view==='admin' && profile?.role!=='admin') return;
+    if(view==='mine' && profile?.role==='admin') view='admin';
+    $$('.view').forEach(v=>v.classList.add('hidden'));
+    const map={dashboard:'#DashboardView',create:'#CreateView',mine:'#MineView',admin:'#AdminView'};
+    $(map[view]||map.dashboard).classList.remove('hidden');
+    $$('#SideMenu li').forEach(li=>li.classList.toggle('active', li.dataset.view===view));
     syncMenuIcons();
-    if(view === 'dashboard') renderStats();
-    if(view === 'mine') renderMine();
-    if(view === 'admin') renderAdmin();
+    if(view==='dashboard') renderStats();
+    if(view==='mine') renderMine();
+    if(view==='admin') renderAdmin();
   }
 
   function renderQuickCards(){
-    const isAdmin = profile?.role === 'admin';
-    const cards = isAdmin ? [
-      ['create','icon-create-order-selected.png','Crea nuovo ordine','Inserisci una lavorazione interna.'],
+    const isAdmin=profile?.role==='admin';
+    const cards=isAdmin ? [
+      ['create','icon-create-order-selected.png','Crea nuovo ordine','Inserisci una lavorazione per conto di un utente.'],
       ['admin','icon-admin-orders-selected.png','Admin ordini','Gestisci richieste, stati e priorità.']
     ] : [
       ['create','icon-create-order-selected.png','Crea nuovo ordine','Invia una nuova richiesta di lavorazione.'],
       ['mine','icon-my-orders-selected.png','I miei ordini','Controlla lo stato dei tuoi ordini.']
     ];
-    $('#DashboardQuickCards').innerHTML = cards.map(([go,icon,t,s]) => `<button class="welcome-card" data-go="${go}"><span class="card-icon"><img src="./assets/icons/${icon}" alt="" /></span><span><strong>${t}</strong><small>${s}</small></span></button>`).join('');
-    $$('[data-go]').forEach(b => b.addEventListener('click', () => navigate(b.dataset.go)));
+    $('#DashboardQuickCards').innerHTML=cards.map(([go,icon,t,s])=>`<button class="welcome-card" data-go="${go}"><span class="card-icon"><img src="./assets/icons/${icon}" alt="" /></span><span><strong>${t}</strong><small>${s}</small></span></button>`).join('');
+    $$('[data-go]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.go)));
+  }
+
+  function renderAdminOwnerPicker(){
+    const existing = $('#AdminOwnerGroup');
+    if(profile?.role !== 'admin') { existing?.remove(); return; }
+    const deliveryGroup = $('#DeliveryDate')?.closest('.form-group');
+    if(!deliveryGroup) return;
+    let group = existing;
+    if(!group){
+      group = document.createElement('div');
+      group.className = 'form-group admin-owner-group';
+      group.id = 'AdminOwnerGroup';
+      group.innerHTML = `<label for="AdminOwnerUser">Richiedente</label><select id="AdminOwnerUser" class="input"><option value="">Seleziona utente richiedente</option></select>`;
+      deliveryGroup.parentElement.insertBefore(group, deliveryGroup);
+    }
+    const sel = $('#AdminOwnerUser');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Seleziona utente richiedente</option>' + userProfiles().map(p => `<option value="${p.id}">${esc(p.full_name || p.email)}</option>`).join('');
+    if(current) sel.value = current;
   }
 
   function renderWorkTypes(){
-    const grid = $('#WorkTypeGrid'); if(!grid) return;
-    grid.innerHTML = WORK_TYPES.map(w => `<article class="worktype-card" data-key="${w.key}"><button type="button" class="worktype-add">+</button><div class="worktype-preview" style="background:${w.fallback}">${[1,2,3].map((n,i)=>`<img class="${i===0?'active':''}" src="./assets/work-types/${w.key}/0${n}.jpg" alt="${esc(w.label)} preview" onerror="this.remove()" />`).join('')}</div><div class="worktype-body"><div class="worktype-title">${esc(w.label)}</div><div class="worktype-copy">${esc(w.copy)}</div><div class="worktype-qty hidden"><button type="button" class="qty-minus">−</button><span>Quantità</span><strong class="qty-value">1</strong><button type="button" class="qty-plus">+</button></div></div></article>`).join('');
-    $$('.worktype-card').forEach(card => {
-      card.addEventListener('click', e => {
-        if(e.target.closest('.worktype-qty')) return;
-        toggleWork(card.dataset.key);
-      });
-      card.querySelector('.qty-minus').addEventListener('click', e => { e.stopPropagation(); changeWorkQty(card.dataset.key, -1); });
-      card.querySelector('.qty-plus').addEventListener('click', e => { e.stopPropagation(); changeWorkQty(card.dataset.key, 1); });
+    const grid=$('#WorkTypeGrid'); if(!grid) return;
+    grid.innerHTML=WORK_TYPES.map(w=>`<article class="worktype-card" data-key="${w.key}"><button type="button" class="worktype-add">+</button><div class="worktype-preview" style="background:${w.fallback}">${[1,2,3].map((n,i)=>`<img class="${i===0?'active':''}" src="./assets/work-types/${w.key}/0${n}.jpg" alt="${esc(w.label)} preview" onerror="this.remove()" />`).join('')}</div><div class="worktype-body"><div class="worktype-title">${esc(w.label)}</div><div class="worktype-copy">${esc(w.copy)}</div><div class="worktype-qty hidden"><button type="button" class="qty-minus">−</button><span>Quantità</span><strong class="qty-value">1</strong><button type="button" class="qty-plus">+</button></div></div></article>`).join('');
+    $$('.worktype-card').forEach(card=>{
+      card.addEventListener('click', e=>{ if(e.target.closest('.worktype-qty')) return; toggleWork(card.dataset.key); });
+      card.querySelector('.qty-minus').addEventListener('click', e=>{ e.stopPropagation(); changeWorkQty(card.dataset.key,-1); });
+      card.querySelector('.qty-plus').addEventListener('click', e=>{ e.stopPropagation(); changeWorkQty(card.dataset.key,1); });
     });
   }
 
-  function toggleWork(key){ selectedWorks.has(key) ? selectedWorks.delete(key) : selectedWorks.set(key, 1); syncWorkSelection(); }
-  function changeWorkQty(key, delta){ if(!selectedWorks.has(key)) selectedWorks.set(key,1); const next = Math.max(1, Math.min(99, Number(selectedWorks.get(key)||1) + delta)); selectedWorks.set(key,next); syncWorkSelection(); }
+  function toggleWork(key){ selectedWorks.has(key) ? selectedWorks.delete(key) : selectedWorks.set(key,1); syncWorkSelection(); }
+  function changeWorkQty(key,delta){ if(!selectedWorks.has(key)) selectedWorks.set(key,1); selectedWorks.set(key, Math.max(1, Math.min(99, Number(selectedWorks.get(key)||1)+delta))); syncWorkSelection(); }
   function syncWorkSelection(){
-    $$('.worktype-card').forEach(c => {
-      const key=c.dataset.key, on=selectedWorks.has(key), qty=selectedWorks.get(key)||1;
-      c.classList.toggle('is-selected', on);
-      c.querySelector('.worktype-add').textContent = on ? '−' : '+';
-      c.querySelector('.worktype-qty').classList.toggle('hidden', !on);
-      c.querySelector('.qty-value').textContent = qty;
-    });
-    const items = WORK_TYPES.filter(w => selectedWorks.has(w.key));
-    $('#SelectedWorkWrap')?.classList.toggle('hidden', !items.length);
-    const list = $('#SelectedWorkList');
-    if(list){
-      list.innerHTML = items.map(w => `<div class="selected-work-row"><div><strong>${esc(w.label)} × ${selectedWorks.get(w.key)||1}</strong><span class="muted">${esc(w.copy)}</span></div><button type="button" class="selected-work-remove" data-key="${w.key}">×</button></div>`).join('');
-      $$('.selected-work-remove').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); selectedWorks.delete(b.dataset.key); syncWorkSelection(); }));
-    }
+    $$('.worktype-card').forEach(c=>{ const key=c.dataset.key,on=selectedWorks.has(key),qty=selectedWorks.get(key)||1; c.classList.toggle('is-selected',on); c.querySelector('.worktype-add').textContent=on?'−':'+'; c.querySelector('.worktype-qty').classList.toggle('hidden',!on); c.querySelector('.qty-value').textContent=qty; });
+    const items=WORK_TYPES.filter(w=>selectedWorks.has(w.key));
+    $('#SelectedWorkWrap')?.classList.toggle('hidden',!items.length);
+    const list=$('#SelectedWorkList');
+    if(list){ list.innerHTML=items.map(w=>`<div class="selected-work-row"><div><strong>${esc(w.label)} × ${selectedWorks.get(w.key)||1}</strong><span class="muted">${esc(w.copy)}</span></div><button type="button" class="selected-work-remove" data-key="${w.key}">×</button></div>`).join(''); $$('.selected-work-remove').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();selectedWorks.delete(b.dataset.key);syncWorkSelection();})); }
     updateCartWidget();
   }
 
-  function ensureCartWidget(){
-    if($('#WorkCartWidget')) return;
-    const div = document.createElement('div'); div.id = 'WorkCartWidget'; div.className = 'work-cart-widget hidden';
-    div.innerHTML = `<div class="cart-dot">0</div><div><strong>Lavorazioni selezionate</strong><span>Apri il riepilogo in basso</span></div>`;
-    document.body.appendChild(div);
-  }
-  function updateCartWidget(){
-    const w=$('#WorkCartWidget'); if(!w) return;
-    const n=[...selectedWorks.values()].reduce((a,b)=>a+Number(b||0),0);
-    w.classList.toggle('hidden', n===0);
-    w.querySelector('.cart-dot').textContent = String(n);
-    w.querySelector('span').textContent = n===1 ? '1 lavorazione nel carrello' : `${n} lavorazioni nel carrello`;
-  }
+  function ensureCartWidget(){ if($('#WorkCartWidget')) return; const div=document.createElement('div'); div.id='WorkCartWidget'; div.className='work-cart-widget hidden'; div.innerHTML=`<div class="cart-dot">0</div><div><strong>Lavorazioni selezionate</strong><span>Apri il riepilogo in basso</span></div>`; document.body.appendChild(div); }
+  function updateCartWidget(){ const w=$('#WorkCartWidget'); if(!w) return; const n=[...selectedWorks.values()].reduce((a,b)=>a+Number(b||0),0); w.classList.toggle('hidden',n===0); w.querySelector('.cart-dot').textContent=String(n); w.querySelector('span').textContent=n===1?'1 lavorazione nel carrello':`${n} lavorazioni nel carrello`; }
 
   function renderCollabPicker(){
-    const panel = $('#CollabPanel'); if(!panel) return;
-    const users = profiles.filter(p => p.role !== 'admin' && p.id !== session?.user?.id);
-    panel.innerHTML = users.length ? users.map(p => `<label class="collab-option"><input type="checkbox" value="${p.id}" ${selectedCollabs.has(p.id)?'checked':''}/><span>${esc(p.full_name || p.email)}</span></label>`).join('') : '<div class="muted">Nessun utente disponibile.</div>';
-    $$('#CollabPanel input').forEach(ch => ch.addEventListener('change', () => { ch.checked ? selectedCollabs.add(ch.value) : selectedCollabs.delete(ch.value); updateCollabToggle(); }));
+    const panel=$('#CollabPanel'); if(!panel) return;
+    let users = userProfiles().filter(p => p.id !== session?.user?.id);
+    if(profile?.role === 'admin'){
+      const ownerId = $('#AdminOwnerUser')?.value || '';
+      users = userProfiles().filter(p => p.id !== ownerId);
+    }
+    panel.innerHTML = users.length ? users.map(p=>`<label class="collab-option"><input type="checkbox" value="${p.id}" ${selectedCollabs.has(p.id)?'checked':''}/><span>${esc(p.full_name||p.email)}</span></label>`).join('') : '<div class="muted">Nessun utente disponibile.</div>';
+    $$('#CollabPanel input').forEach(ch=>ch.addEventListener('change',()=>{ch.checked?selectedCollabs.add(ch.value):selectedCollabs.delete(ch.value); updateCollabToggle();}));
     updateCollabToggle();
+    $('#AdminOwnerUser')?.addEventListener('change',()=>{ selectedCollabs.delete($('#AdminOwnerUser').value); renderCollabPicker(); });
   }
-  function updateCollabToggle(){ const names = profiles.filter(p => selectedCollabs.has(p.id)); $('#CollabToggle').textContent = names.length ? `${names.length} collaborator${names.length>1?'i':'e'} selezionat${names.length>1?'i':'o'}` : 'Seleziona collaboratori'; }
+  function updateCollabToggle(){ const names=profiles.filter(p=>selectedCollabs.has(p.id)); $('#CollabToggle').textContent=names.length?`${names.length} collaborator${names.length>1?'i':'e'} selezionat${names.length>1?'i':'o'}`:'Seleziona collaboratori'; }
 
-  function resetOrderForm(){ $('#OrderForm').reset(); $('#Priority').value='media'; selectedWorks.clear(); selectedCollabs.clear(); syncWorkSelection(); renderCollabPicker(); }
-  function selectedWorkItems(){ return WORK_TYPES.filter(w => selectedWorks.has(w.key)).map(w => ({ item_type:w.label, item_title:w.label, item_description:w.copy, quantity:Number(selectedWorks.get(w.key)||1) })); }
+  function resetOrderForm(){ $('#OrderForm').reset(); $('#Priority').value='media'; selectedWorks.clear(); selectedCollabs.clear(); syncWorkSelection(); renderAdminOwnerPicker(); renderCollabPicker(); }
+  function selectedWorkItems(){ return WORK_TYPES.filter(w=>selectedWorks.has(w.key)).map(w=>({item_type:w.label,item_title:w.label,item_description:w.copy,quantity:Number(selectedWorks.get(w.key)||1)})); }
 
-  async function notifyZapier(order, items, payload){
-    const url = cfg.ZAPIER_NEW_ORDER_WEBHOOK_URL; if(!url) return;
-    try{
-      const first = items[0] || {};
-      const body = new URLSearchParams({ event_type:'order_created', order_id:order.id||'', order_number:order.order_number||'', subject:order.subject||payload.subject||'', description:order.description||payload.description||'', status:order.status||'inviato', status_label:STATUS[order.status||'inviato']?.label||'Inviato', priority:order.priority||payload.priority||'media', priority_label:PRIORITY_LABELS[order.priority||payload.priority||'media']||'Media', request_type:first.item_type||order.request_type||'', project_name:order.project_name||payload.project_name||'', commessa:order.commessa||payload.commessa||'', requested_delivery_date:order.requested_delivery_date||payload.requested_delivery_date||'', created_at:order.created_at||new Date().toISOString(), user_name:profile?.full_name||profile?.email||session?.user?.email||'', user_email:profile?.email||session?.user?.email||'', item_count:String(items.length||0), items_summary:items.map(it=>`${it.quantity||1} x ${it.item_title||''} (${it.item_type||''})`).join(' | '), portal_url:location.origin+location.pathname });
-      await fetch(url, { method:'POST', mode:'no-cors', body });
-    }catch(e){ console.warn('Zapier skipped', e); }
+  async function notifyZapier(order,items,payload){
+    if(profile?.role === 'admin') return;
+    const url=cfg.ZAPIER_NEW_ORDER_WEBHOOK_URL; if(!url) return;
+    try{ const first=items[0]||{}; const body=new URLSearchParams({event_type:'order_created',order_id:order.id||'',order_number:order.order_number||'',subject:order.subject||payload.subject||'',description:order.description||payload.description||'',status:order.status||'inviato',status_label:STATUS[order.status||'inviato']?.label||'Inviato',priority:order.priority||payload.priority||'media',priority_label:PRIORITY_LABELS[order.priority||payload.priority||'media']||'Media',request_type:first.item_type||order.request_type||'',project_name:order.project_name||payload.project_name||'',commessa:order.commessa||payload.commessa||'',requested_delivery_date:order.requested_delivery_date||payload.requested_delivery_date||'',created_at:order.created_at||new Date().toISOString(),user_name:profile?.full_name||profile?.email||session?.user?.email||'',user_email:profile?.email||session?.user?.email||'',item_count:String(items.length||0),items_summary:items.map(it=>`${it.quantity||1} x ${it.item_title||''} (${it.item_type||''})`).join(' | '),portal_url:location.origin+location.pathname}); await fetch(url,{method:'POST',mode:'no-cors',body}); }catch(e){console.warn('Zapier skipped',e);}
   }
 
   async function submitOrder(e){
     e.preventDefault();
-    const items = selectedWorkItems();
-    if(!items.length){ toast('Seleziona almeno un tipo di lavorazione.'); return; }
-    const project=$('#ProjectName').value.trim(); const commessa=$('#Commessa').value.trim(); const notes=$('#OrderNotes').value.trim();
+    const items=selectedWorkItems();
+    if(!items.length){toast('Seleziona almeno un tipo di lavorazione.');return;}
+    let ownerId=session.user.id;
+    if(profile?.role==='admin'){
+      ownerId=$('#AdminOwnerUser')?.value || '';
+      if(!ownerId){toast('Seleziona il richiedente dell’ordine.');return;}
+    }
+    const project=$('#ProjectName').value.trim(), commessa=$('#Commessa').value.trim(), notes=$('#OrderNotes').value.trim();
     const typeList=items.map(i=>`${i.item_title}${i.quantity>1?' x'+i.quantity:''}`).join(', ');
-    const payload = { user_id:session.user.id, request_type:items[0].item_type, project_name:project||null, commessa:commessa||null, subject:`${typeList}${project?' · '+project:''}`, description:notes || `Richiesta lavorazioni: ${typeList}${project?' per '+project:''}${commessa?' / '+commessa:''}.`, priority:$('#Priority').value, requested_delivery_date:$('#DeliveryDate').value||null, status:'inviato' };
+    const payload={user_id:ownerId,request_type:items[0].item_type,project_name:project||null,commessa:commessa||null,subject:`${typeList}${project?' · '+project:''}`,description:notes||`Richiesta lavorazioni: ${typeList}${project?' per '+project:''}${commessa?' / '+commessa:''}.`,priority:$('#Priority').value,requested_delivery_date:$('#DeliveryDate').value||null,status:'inviato'};
     $('#SubmitOrder').disabled=true; $('#SubmitOrder').textContent='Invio...';
-    try{
-      const {data:order,error}=await supabase.from('orders').insert(payload).select('*').single(); if(error) throw error;
-      const {error:itemErr}=await supabase.from('order_items').insert(items.map(it=>({...it,order_id:order.id}))); if(itemErr) throw itemErr;
-      if(selectedCollabs.size){ try{ await supabase.from('order_collaborators').insert([...selectedCollabs].map(user_id=>({order_id:order.id,user_id}))); }catch(e){ console.warn('collab non salvato', e); } }
-      await notifyZapier(order,items,payload); resetOrderForm(); toast(`Ordine ${order.order_number} creato correttamente.`); navigate(profile?.role==='admin'?'admin':'mine');
-    }catch(err){ toast('Errore creazione ordine: '+(err.message||err)); }
-    finally{ $('#SubmitOrder').disabled=false; $('#SubmitOrder').textContent='Invia ordine'; }
+    try{ const {data:order,error}=await supabase.from('orders').insert(payload).select('*').single(); if(error) throw error; const {error:itemErr}=await supabase.from('order_items').insert(items.map(it=>({...it,order_id:order.id}))); if(itemErr) throw itemErr; if(selectedCollabs.size){try{await supabase.from('order_collaborators').insert([...selectedCollabs].map(user_id=>({order_id:order.id,user_id})));}catch(e){console.warn('collab non salvato',e);}} await notifyZapier(order,items,payload); resetOrderForm(); toast(`Ordine ${order.order_number} creato correttamente.`); navigate(profile?.role==='admin'?'admin':'mine'); }
+    catch(err){toast('Errore creazione ordine: '+(err.message||err));}
+    finally{$('#SubmitOrder').disabled=false; $('#SubmitOrder').textContent='Invia ordine';}
   }
 
-  async function fetchItems(ids){ if(!ids.length) return {}; const {data,error}=await supabase.from('order_items').select('*').in('order_id',ids).order('created_at'); if(error){console.warn(error); return{};} return asArray(data).reduce((a,it)=>{(a[it.order_id] ||= []).push(it); return a;},{}); }
-  async function fetchProfiles(ids){ if(!ids.length) return {}; const {data,error}=await supabase.from('profiles').select('*').in('id',ids); if(error){console.warn(error); return{};} return asArray(data).reduce((a,p)=>{a[p.id]=p; return a;},{}); }
-  async function fetchCollabMap(orderIds){ if(!orderIds.length) return {}; try{ const {data,error}=await supabase.from('order_collaborators').select('order_id,user_id').in('order_id',orderIds); if(error) throw error; return asArray(data).reduce((a,r)=>{(a[r.order_id] ||= []).push(r.user_id); return a;},{}); }catch(e){ console.warn('collab map skipped', e); return {}; } }
-  async function fetchSharedOrders(){ try{ const {data:links,error}=await supabase.from('order_collaborators').select('order_id').eq('user_id',session.user.id); if(error) throw error; const ids=asArray(links).map(x=>x.order_id); if(!ids.length) return []; const {data,error:e2}=await supabase.from('orders').select('*').in('id',ids).order('created_at',{ascending:false}); if(e2) throw e2; return asArray(data); }catch(e){ return []; } }
+  async function fetchItems(ids){if(!ids.length)return{};const{data,error}=await supabase.from('order_items').select('*').in('order_id',ids).order('created_at');if(error){console.warn(error);return{};}return asArray(data).reduce((a,it)=>{(a[it.order_id] ||= []).push(it);return a;},{});}
+  async function fetchProfiles(ids){if(!ids.length)return{};const{data,error}=await supabase.from('profiles').select('*').in('id',ids);if(error){console.warn(error);return{};}return asArray(data).reduce((a,p)=>{a[p.id]=p;return a;},{});}
+  async function fetchCollabMap(orderIds){if(!orderIds.length)return{};try{const{data,error}=await supabase.from('order_collaborators').select('order_id,user_id').in('order_id',orderIds);if(error)throw error;return asArray(data).reduce((a,r)=>{(a[r.order_id] ||= []).push(r.user_id);return a;},{});}catch(e){console.warn('collab map skipped',e);return{};}}
+  async function fetchSharedOrders(){try{const{data:links,error}=await supabase.from('order_collaborators').select('order_id').eq('user_id',session.user.id);if(error)throw error;const ids=asArray(links).map(x=>x.order_id);if(!ids.length)return[];const{data,error:e2}=await supabase.from('orders').select('*').in('id',ids).order('created_at',{ascending:false});if(e2)throw e2;return asArray(data);}catch(e){return[];}}
 
-  async function renderMine(){
-    const box=$('#MyOrdersList'); box.innerHTML='<div class="empty">Caricamento ordini...</div>';
-    const {data,error}=await supabase.from('orders').select('*').order('created_at',{ascending:false}); if(error){box.innerHTML=`<div class="empty">Errore: ${esc(error.message)}</div>`; return;}
-    const own=asArray(data), shared=await fetchSharedOrders(); const all=[...own,...shared.filter(s=>!own.some(o=>o.id===s.id))]; const items=await fetchItems(all.map(o=>o.id));
-    myOrdersCache=all.map(o=>({...o,items:items[o.id]||[],is_shared:shared.some(s=>s.id===o.id)})); sharedOrdersCache=myOrdersCache.filter(o=>o.is_shared); drawMineList();
-  }
-  async function renderAdmin(){
-    if(profile?.role!=='admin') return; const box=$('#AdminOrdersList'); box.innerHTML='<div class="empty">Caricamento ordini admin...</div>';
-    const {data,error}=await supabase.from('orders').select('*').order('created_at',{ascending:false}); if(error){box.innerHTML=`<div class="empty">Errore: ${esc(error.message)}</div>`; return;}
-    const rows=asArray(data), prof=await fetchProfiles([...new Set(rows.map(o=>o.user_id))]), items=await fetchItems(rows.map(o=>o.id)), collabs=await fetchCollabMap(rows.map(o=>o.id));
-    adminOrdersCache=rows.map(o=>({...o,profile:prof[o.user_id]||{},items:items[o.id]||[],collab_ids:collabs[o.id]||[]})); drawAdminList();
-  }
+  async function renderMine(){const box=$('#MyOrdersList');box.innerHTML='<div class="empty">Caricamento ordini...</div>';const{data,error}=await supabase.from('orders').select('*').order('created_at',{ascending:false});if(error){box.innerHTML=`<div class="empty">Errore: ${esc(error.message)}</div>`;return;}const own=asArray(data),shared=await fetchSharedOrders();const all=[...own,...shared.filter(s=>!own.some(o=>o.id===s.id))];const items=await fetchItems(all.map(o=>o.id));myOrdersCache=all.map(o=>({...o,items:items[o.id]||[],is_shared:shared.some(s=>s.id===o.id)}));sharedOrdersCache=myOrdersCache.filter(o=>o.is_shared);drawMineList();}
+  async function renderAdmin(){if(profile?.role!=='admin')return;const box=$('#AdminOrdersList');box.innerHTML='<div class="empty">Caricamento ordini admin...</div>';const{data,error}=await supabase.from('orders').select('*').order('created_at',{ascending:false});if(error){box.innerHTML=`<div class="empty">Errore: ${esc(error.message)}</div>`;return;}const rows=asArray(data),prof=await fetchProfiles([...new Set(rows.map(o=>o.user_id))]),items=await fetchItems(rows.map(o=>o.id)),collabs=await fetchCollabMap(rows.map(o=>o.id));adminOrdersCache=rows.map(o=>({...o,profile:prof[o.user_id]||{},items:items[o.id]||[],collab_ids:collabs[o.id]||[]}));drawAdminList();}
 
-  function filterRows(rows, scope){
-    const q=$('#'+scope+'Search')?.value.trim().toLowerCase()||'', st=$('#'+scope+'StatusFilter')?.value||'', pr=$('#'+scope+'PriorityFilter')?.value||'', dt=$('#'+scope+'DateFilter')?.value||'', user=$('#'+scope+'UserFilter')?.value||'';
-    return asArray(rows).filter(o=>{const hay=[o.order_number,o.subject,o.project_name,o.commessa,o.request_type,o.profile?.email,o.profile?.full_name].join(' ').toLowerCase(); return(!q||hay.includes(q))&&(!st||o.status===st)&&(!pr||o.priority===pr)&&(!dt||dateKey(o.created_at)===dt)&&(!user||o.user_id===user);});
-  }
-  function drawMineList(){ const rows=filterRows(myOrdersCache,'Mine'); $('#MyOrdersList').innerHTML=rows.length?rows.map(o=>orderCard(o,o.items||[],false)).join(''):'<div class="empty">Nessun ordine trovato.</div>'; bindOrderAccordions('#MyOrdersList'); }
-  function drawAdminList(){ const rows=filterRows(adminOrdersCache,'Admin'); $('#AdminOrdersList').innerHTML=rows.length?rows.map(o=>orderCard(o,o.items||[],true)).join(''):'<div class="empty">Nessun ordine trovato.</div>'; bindOrderAccordions('#AdminOrdersList'); bindAdminDirty(); }
-  function bindOrderAccordions(scope){ $$(scope+' .order-summary').forEach(btn=>btn.addEventListener('click',()=>btn.closest('.order-card').classList.toggle('is-open'))); }
+  function filterRows(rows,scope){const q=$('#'+scope+'Search')?.value.trim().toLowerCase()||'',st=$('#'+scope+'StatusFilter')?.value||'',pr=$('#'+scope+'PriorityFilter')?.value||'',dt=$('#'+scope+'DateFilter')?.value||'',user=$('#'+scope+'UserFilter')?.value||'';return asArray(rows).filter(o=>{const hay=[o.order_number,o.subject,o.project_name,o.commessa,o.request_type,o.profile?.email,o.profile?.full_name].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||o.status===st)&&(!pr||o.priority===pr)&&(!dt||dateKey(o.created_at)===dt)&&(!user||o.user_id===user);});}
+  function drawMineList(){const rows=filterRows(myOrdersCache,'Mine');$('#MyOrdersList').innerHTML=rows.length?rows.map(o=>orderCard(o,o.items||[],false)).join(''):'<div class="empty">Nessun ordine trovato.</div>';bindOrderAccordions('#MyOrdersList');}
+  function drawAdminList(){const rows=filterRows(adminOrdersCache,'Admin');$('#AdminOrdersList').innerHTML=rows.length?rows.map(o=>orderCard(o,o.items||[],true)).join(''):'<div class="empty">Nessun ordine trovato.</div>';bindOrderAccordions('#AdminOrdersList');bindAdminDirty();}
+  function bindOrderAccordions(scope){$$(scope+' .order-summary').forEach(btn=>btn.addEventListener('click',()=>btn.closest('.order-card').classList.toggle('is-open')));}
 
-  function adminCollabDropdown(o){
-    const users=profiles.filter(p=>p.role!=='admin' && p.id!==o.user_id), selected=users.filter(p=>o.collab_ids?.includes(p.id));
-    const label=selected.length?`${selected.length} collaborator${selected.length>1?'i':'e'} selezionat${selected.length>1?'i':'o'}`:'Seleziona collaboratori';
-    return `<div class="admin-collab-dropdown"><label>Collab</label><button type="button" class="input admin-collab-toggle">${label}</button><div class="admin-collab-menu hidden">${users.map(p=>`<label class="admin-collab-option"><input type="checkbox" class="admin-collab-check" value="${p.id}" data-original="${o.collab_ids?.includes(p.id)?'true':'false'}" ${o.collab_ids?.includes(p.id)?'checked':''}/><span>${esc(p.full_name||p.email)}</span></label>`).join('') || '<span class="muted">Nessun utente disponibile</span>'}</div></div>`;
-  }
-  function workSelectOptions(selected){ return WORK_TYPES.map(w=>`<option value="${esc(w.label)}" ${selected===w.label?'selected':''}>${esc(w.label)}</option>`).join(''); }
+  function adminCollabDropdown(o){const users=userProfiles().filter(p=>p.id!==o.user_id),selected=users.filter(p=>o.collab_ids?.includes(p.id));const label=selected.length?`${selected.length} collaborator${selected.length>1?'i':'e'} selezionat${selected.length>1?'i':'o'}`:'Seleziona collaboratori';return `<div class="admin-collab-dropdown"><label>Collab</label><button type="button" class="input admin-collab-toggle">${label}</button><div class="admin-collab-menu hidden">${users.map(p=>`<label class="admin-collab-option"><input type="checkbox" class="admin-collab-check" value="${p.id}" data-original="${o.collab_ids?.includes(p.id)?'true':'false'}" ${o.collab_ids?.includes(p.id)?'checked':''}/><span>${esc(p.full_name||p.email)}</span></label>`).join('')||'<span class="muted">Nessun utente disponibile</span>'}</div></div>`;}
+  function workSelectOptions(selected){return WORK_TYPES.map(w=>`<option value="${esc(w.label)}" ${selected===w.label?'selected':''}>${esc(w.label)}</option>`).join('');}
 
-  function orderCard(o, items, isAdmin){
-    const firstItem=items[0]||{}, type=firstItem.item_type || o.request_type || 'Altro', qty=Number(firstItem.quantity||1);
-    const user=isAdmin?`<div class="admin-user">${esc(o.profile?.full_name||'Utente')} · ${esc(o.profile?.email||o.user_id)}</div>`:'';
-    const shared=o.is_shared?'<span class="status-badge status-inviato">Condiviso</span>':'';
-    const itemHtml=items.length?`<div class="items-mini"><strong>Righe:</strong><ul>${items.map(i=>`<li>${esc(i.quantity)}× ${esc(i.item_title)} <span class="muted">(${esc(i.item_type)})</span></li>`).join('')}</ul></div>`:'';
-    const adminData=isAdmin?`<div class="admin-data-grid admin-data-grid-v3"><div class="admin-field"><label>Progetto/Cantiere</label><input class="input admin-project" data-original="${esc(o.project_name||'')}" value="${esc(o.project_name||'')}" /></div><div class="admin-field"><label>Commessa</label><input class="input admin-commessa" data-original="${esc(o.commessa||'')}" value="${esc(o.commessa||'')}" /></div><div class="admin-field"><label>Consegna richiesta</label><input type="date" class="input admin-delivery" data-original="${esc(o.requested_delivery_date||'')}" value="${esc(o.requested_delivery_date||'')}" /></div><div class="admin-field"><label>Oggetto</label><input class="input admin-subject" data-original="${esc(o.subject||'')}" value="${esc(o.subject||'')}" /></div><div class="admin-field"><label>Priorità</label><select class="input admin-priority" data-original="${esc(o.priority||'media')}">${Object.entries(PRIORITY_LABELS).map(([k,v])=>`<option value="${k}" ${o.priority===k?'selected':''}>${v}</option>`).join('')}</select></div><div class="admin-field"><label>Tipo lavorazione</label><select class="input admin-worktype" data-original="${esc(type)}">${workSelectOptions(type)}</select></div><div class="admin-field"><label>Quantità</label><div class="admin-qty-control"><button type="button" class="admin-qty-minus">−</button><input class="input admin-qty" type="number" min="1" max="99" data-original="${qty}" value="${qty}" /><button type="button" class="admin-qty-plus">+</button></div></div>${adminCollabDropdown(o)}</div>`:'';
-    const adminHtml=isAdmin?`<div class="admin-edit-grid admin-edit-grid-v2"><div class="admin-field"><label>Stato</label><select class="input admin-status" data-original="${esc(o.status)}">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${o.status===k?'selected':''}>${v.label}</option>`).join('')}</select></div><div class="admin-actions-row"><button type="button" class="btn-primary admin-save" disabled>Salva</button><button type="button" class="btn-danger admin-delete">Elimina</button></div></div>`:'';
-    return `<article class="order-card${isAdmin?' admin-card':''}" data-id="${o.id}" data-item-id="${firstItem.id||''}"><button type="button" class="order-summary"><div class="order-cell"><span class="order-number">${esc(o.order_number)}</span></div><div class="order-cell"><strong class="order-title">${esc(o.subject)}</strong>${user}</div><div class="order-cell"><small>Cantiere</small><strong>${esc(o.project_name||'—')}</strong></div><div class="order-cell"><small>Commessa</small><strong>${esc(o.commessa||'—')}</strong></div><div class="order-cell summary-tags">${priorityBadge(o.priority)}<span class="status-badge status-inviato">${esc(type)}</span>${statusBadge(o.status)}${shared}</div><div class="order-cell"><strong>${esc(o.requested_delivery_date?fmtDate(o.requested_delivery_date):'—')}</strong><small>Consegna</small></div><div class="order-cell"><span class="order-chevron">⌄</span></div></button><div class="order-detail"><p class="order-desc">${esc(o.description)}</p><div class="detail-grid"><div><small>Progetto/Cantiere</small><strong>${esc(o.project_name||'—')}</strong></div><div><small>Commessa</small><strong>${esc(o.commessa||'—')}</strong></div><div><small>Consegna richiesta</small><strong>${esc(o.requested_delivery_date?fmtDate(o.requested_delivery_date):'—')}</strong></div><div><small>Creato il</small><strong>${esc(fmtDate(o.created_at))}</strong></div></div>${adminData}${itemHtml}<div class="order-footer">${progress(o.status)}<span class="muted">${STATUS[o.status]?.pct||10}%</span></div>${adminHtml}</div></article>`;
-  }
+  function orderCard(o,items,isAdmin){const firstItem=items[0]||{},type=firstItem.item_type||o.request_type||'Altro',qty=Number(firstItem.quantity||1);const user=isAdmin?`<div class="admin-user">${esc(o.profile?.full_name||'Utente')} · ${esc(o.profile?.email||o.user_id)}</div>`:'';const shared=o.is_shared?'<span class="status-badge status-inviato">Condiviso</span>':'';const itemHtml=items.length?`<div class="items-mini"><strong>Righe:</strong><ul>${items.map(i=>`<li>${esc(i.quantity)}× ${esc(i.item_title)} <span class="muted">(${esc(i.item_type)})</span></li>`).join('')}</ul></div>`:'';const adminData=isAdmin?`<div class="admin-data-grid admin-data-grid-v3"><div class="admin-field"><label>Progetto/Cantiere</label><input class="input admin-project" data-original="${esc(o.project_name||'')}" value="${esc(o.project_name||'')}" /></div><div class="admin-field"><label>Commessa</label><input class="input admin-commessa" data-original="${esc(o.commessa||'')}" value="${esc(o.commessa||'')}" /></div><div class="admin-field"><label>Consegna richiesta</label><input type="date" class="input admin-delivery" data-original="${esc(o.requested_delivery_date||'')}" value="${esc(o.requested_delivery_date||'')}" /></div><div class="admin-field"><label>Oggetto</label><input class="input admin-subject" data-original="${esc(o.subject||'')}" value="${esc(o.subject||'')}" /></div><div class="admin-field"><label>Priorità</label><select class="input admin-priority" data-original="${esc(o.priority||'media')}">${Object.entries(PRIORITY_LABELS).map(([k,v])=>`<option value="${k}" ${o.priority===k?'selected':''}>${v}</option>`).join('')}</select></div><div class="admin-field"><label>Tipo lavorazione</label><select class="input admin-worktype" data-original="${esc(type)}">${workSelectOptions(type)}</select></div><div class="admin-field"><label>Quantità</label><div class="admin-qty-control"><button type="button" class="admin-qty-minus">−</button><input class="input admin-qty" type="number" min="1" max="99" data-original="${qty}" value="${qty}" /><button type="button" class="admin-qty-plus">+</button></div></div>${adminCollabDropdown(o)}</div>`:'';const adminHtml=isAdmin?`<div class="admin-edit-grid admin-edit-grid-v2"><div class="admin-field"><label>Stato</label><select class="input admin-status" data-original="${esc(o.status)}">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${o.status===k?'selected':''}>${v.label}</option>`).join('')}</select></div><div class="admin-actions-row"><button type="button" class="btn-primary admin-save" disabled>Salva</button><button type="button" class="btn-danger admin-delete">Elimina</button></div></div>`:'';return `<article class="order-card${isAdmin?' admin-card':''}" data-id="${o.id}" data-item-id="${firstItem.id||''}"><button type="button" class="order-summary"><div class="order-cell"><span class="order-number">${esc(o.order_number)}</span></div><div class="order-cell"><strong class="order-title">${esc(o.subject)}</strong>${user}</div><div class="order-cell"><small>Cantiere</small><strong>${esc(o.project_name||'—')}</strong></div><div class="order-cell"><small>Commessa</small><strong>${esc(o.commessa||'—')}</strong></div><div class="order-cell summary-tags">${priorityBadge(o.priority)}<span class="status-badge status-inviato">${esc(type)}</span>${statusBadge(o.status)}${shared}</div><div class="order-cell"><strong>${esc(o.requested_delivery_date?fmtDate(o.requested_delivery_date):'—')}</strong><small>Consegna</small></div><div class="order-cell"><span class="order-chevron">⌄</span></div></button><div class="order-detail"><p class="order-desc">${esc(o.description)}</p><div class="detail-grid"><div><small>Progetto/Cantiere</small><strong>${esc(o.project_name||'—')}</strong></div><div><small>Commessa</small><strong>${esc(o.commessa||'—')}</strong></div><div><small>Consegna richiesta</small><strong>${esc(o.requested_delivery_date?fmtDate(o.requested_delivery_date):'—')}</strong></div><div><small>Creato il</small><strong>${esc(fmtDate(o.created_at))}</strong></div></div>${adminData}${itemHtml}<div class="order-footer">${progress(o.status)}<span class="muted">${STATUS[o.status]?.pct||10}%</span></div>${adminHtml}</div></article>`;}
 
-  function bindAdminDirty(){
-    $$('#AdminOrdersList .order-card').forEach(card=>{
-      const id=card.dataset.id, save=card.querySelector('.admin-save');
-      const fields=Array.from(card.querySelectorAll('.admin-status,.admin-priority,.admin-project,.admin-commessa,.admin-delivery,.admin-subject,.admin-worktype,.admin-qty'));
-      const checks=Array.from(card.querySelectorAll('.admin-collab-check'));
-      const check=()=>{
-        const dirtyFields=fields.some(f=>String(f.value||'')!==String(f.dataset.original||''));
-        const dirtyChecks=checks.some(c=>String(c.checked)!==String(c.dataset.original === 'true'));
-        save.disabled=!(dirtyFields||dirtyChecks);
-        const selected=checks.filter(c=>c.checked).length;
-        const toggle=card.querySelector('.admin-collab-toggle');
-        if(toggle) toggle.textContent=selected?`${selected} collaborator${selected>1?'i':'e'} selezionat${selected>1?'i':'o'}`:'Seleziona collaboratori';
-      };
-      fields.forEach(f=>{f.addEventListener('input',check);f.addEventListener('change',check);});
-      checks.forEach(c=>c.addEventListener('change',check));
-      card.querySelector('.admin-collab-toggle')?.addEventListener('click',e=>{e.stopPropagation(); card.querySelector('.admin-collab-menu')?.classList.toggle('hidden');});
-      card.querySelector('.admin-qty-minus')?.addEventListener('click',()=>{const q=card.querySelector('.admin-qty');q.value=Math.max(1,Number(q.value||1)-1);check();});
-      card.querySelector('.admin-qty-plus')?.addEventListener('click',()=>{const q=card.querySelector('.admin-qty');q.value=Math.min(99,Number(q.value||1)+1);check();});
-      save.addEventListener('click',()=>saveAdminOrder(card,id));
-      card.querySelector('.admin-delete')?.addEventListener('click',()=>deleteAdminOrder(id));
-      check();
-    });
-  }
+  function bindAdminDirty(){ $$('#AdminOrdersList .order-card').forEach(card=>{const id=card.dataset.id,save=card.querySelector('.admin-save');const fields=Array.from(card.querySelectorAll('.admin-status,.admin-priority,.admin-project,.admin-commessa,.admin-delivery,.admin-subject,.admin-worktype,.admin-qty'));const checks=Array.from(card.querySelectorAll('.admin-collab-check'));const check=()=>{const dirtyFields=fields.some(f=>String(f.value||'')!==String(f.dataset.original||''));const dirtyChecks=checks.some(c=>String(c.checked)!==String(c.dataset.original==='true'));save.disabled=!(dirtyFields||dirtyChecks);const selected=checks.filter(c=>c.checked).length;const toggle=card.querySelector('.admin-collab-toggle');if(toggle)toggle.textContent=selected?`${selected} collaborator${selected>1?'i':'e'} selezionat${selected>1?'i':'o'}`:'Seleziona collaboratori';};fields.forEach(f=>{f.addEventListener('input',check);f.addEventListener('change',check);});checks.forEach(c=>c.addEventListener('change',check));card.querySelector('.admin-collab-toggle')?.addEventListener('click',e=>{e.stopPropagation();card.querySelector('.admin-collab-menu')?.classList.toggle('hidden');});card.querySelector('.admin-qty-minus')?.addEventListener('click',()=>{const q=card.querySelector('.admin-qty');q.value=Math.max(1,Number(q.value||1)-1);check();});card.querySelector('.admin-qty-plus')?.addEventListener('click',()=>{const q=card.querySelector('.admin-qty');q.value=Math.min(99,Number(q.value||1)+1);check();});save.addEventListener('click',()=>saveAdminOrder(card,id));card.querySelector('.admin-delete')?.addEventListener('click',()=>deleteAdminOrder(id));check();}); }
 
-  async function saveAdminOrder(card,id){
-    const workLabel=card.querySelector('.admin-worktype').value;
-    const work=workByLabel(workLabel);
-    const qty=Math.max(1,Number(card.querySelector('.admin-qty').value||1));
-    const payload={ status:card.querySelector('.admin-status').value, priority:card.querySelector('.admin-priority').value, project_name:card.querySelector('.admin-project').value.trim()||null, commessa:card.querySelector('.admin-commessa').value.trim()||null, requested_delivery_date:card.querySelector('.admin-delivery').value||null, subject:card.querySelector('.admin-subject').value.trim()||'Senza oggetto', request_type:workLabel };
-    const old=adminOrdersCache.find(o=>o.id===id);
-    const {error}=await supabase.from('orders').update(payload).eq('id',id);
-    if(error){toast('Errore aggiornamento: '+error.message); return;}
-    const itemId=card.dataset.itemId;
-    try{
-      if(itemId){ await supabase.from('order_items').update({item_type:workLabel,item_title:workLabel,item_description:work.copy,quantity:qty}).eq('id',itemId); }
-      else{ await supabase.from('order_items').insert({order_id:id,item_type:workLabel,item_title:workLabel,item_description:work.copy,quantity:qty}); }
-    }catch(e){console.warn('item update failed',e);}
-    const selected=[...card.querySelectorAll('.admin-collab-check:checked')].map(c=>c.value);
-    try{ await supabase.from('order_collaborators').delete().eq('order_id',id); if(selected.length) await supabase.from('order_collaborators').insert(selected.map(user_id=>({order_id:id,user_id}))); }catch(e){ console.warn('collab update failed', e); }
-    if(old&&old.status!==payload.status) await supabase.from('order_status_history').insert({order_id:id,old_status:old.status,new_status:payload.status,changed_by:session.user.id});
-    toast('Ordine aggiornato.'); await renderAdmin(); await renderStats();
-  }
-  async function deleteAdminOrder(id){ if(!confirm('Vuoi eliminare definitivamente questo ordine?')) return; const {error}=await supabase.from('orders').delete().eq('id',id); if(error){toast('Errore eliminazione: '+error.message);return;} toast('Ordine eliminato.'); await renderAdmin(); await renderStats(); }
+  async function saveAdminOrder(card,id){const workLabel=card.querySelector('.admin-worktype').value,work=workByLabel(workLabel),qty=Math.max(1,Number(card.querySelector('.admin-qty').value||1));const payload={status:card.querySelector('.admin-status').value,priority:card.querySelector('.admin-priority').value,project_name:card.querySelector('.admin-project').value.trim()||null,commessa:card.querySelector('.admin-commessa').value.trim()||null,requested_delivery_date:card.querySelector('.admin-delivery').value||null,subject:card.querySelector('.admin-subject').value.trim()||'Senza oggetto',request_type:workLabel};const old=adminOrdersCache.find(o=>o.id===id);const{error}=await supabase.from('orders').update(payload).eq('id',id);if(error){toast('Errore aggiornamento: '+error.message);return;}const itemId=card.dataset.itemId;try{if(itemId){await supabase.from('order_items').update({item_type:workLabel,item_title:workLabel,item_description:work.copy,quantity:qty}).eq('id',itemId);}else{await supabase.from('order_items').insert({order_id:id,item_type:workLabel,item_title:workLabel,item_description:work.copy,quantity:qty});}}catch(e){console.warn('item update failed',e);}const selected=[...card.querySelectorAll('.admin-collab-check:checked')].map(c=>c.value);try{await supabase.from('order_collaborators').delete().eq('order_id',id);if(selected.length)await supabase.from('order_collaborators').insert(selected.map(user_id=>({order_id:id,user_id})));}catch(e){console.warn('collab update failed',e);}if(old&&old.status!==payload.status)await supabase.from('order_status_history').insert({order_id:id,old_status:old.status,new_status:payload.status,changed_by:session.user.id});toast('Ordine aggiornato.');await renderAdmin();await renderStats();}
+  async function deleteAdminOrder(id){if(!confirm('Vuoi eliminare definitivamente questo ordine?'))return;const{error}=await supabase.from('orders').delete().eq('id',id);if(error){toast('Errore eliminazione: '+error.message);return;}toast('Ordine eliminato.');await renderAdmin();await renderStats();}
 
-  async function refreshAll(){ renderQuickCards(); await renderStats(); if(!$('#MineView')?.classList.contains('hidden')) await renderMine(); if(profile?.role==='admin' && !$('#AdminView')?.classList.contains('hidden')) await renderAdmin(); }
-  async function renderStats(){
-    let rows=[]; try{ const {data,error}=await supabase.from('orders').select('*').order('created_at',{ascending:false}); if(error) throw error; rows=asArray(data); } catch(e){ console.warn('orders stats failed', e); rows=[]; }
-    let prof={}; if(profile?.role==='admin') prof=await fetchProfiles([...new Set(rows.map(o=>o.user_id))]); dashboardOrdersCache=rows.map(o=>({...o,profile:prof[o.user_id]||{}})); populateDashUsers(); drawDashboard();
-  }
-  function populateDashUsers(){ const sel=$('#DashUserFilter'); if(!sel||profile?.role!=='admin') return; const current=sel.value; const users=[...new Map(dashboardOrdersCache.map(o=>[o.user_id,o.profile])).entries()]; sel.innerHTML='<option value="">Tutti gli utenti</option>'+users.map(([id,p])=>`<option value="${id}">${esc(p.full_name||p.email||id)}</option>`).join(''); sel.value=current; }
-  function syncDashboardMode(){ $('#DashboardCharts')?.classList.toggle('hidden',dashboardMode!=='charts'); $('#DashboardStats')?.classList.toggle('hidden',dashboardMode!=='boxes'); const b=$('#ToggleDashboardView'); if(b)b.textContent=dashboardMode==='charts'?'Vista box':'Vista grafici'; }
-  function toggleDashboardMode(){ dashboardMode=dashboardMode==='charts'?'boxes':'charts'; localStorage.setItem('abitare_lavorazioni_dashboard_mode',dashboardMode); syncDashboardMode(); drawDashboard(); }
-  function countByStatus(rows){ const c=Object.keys(STATUS).reduce((a,k)=>(a[k]=0,a),{}); asArray(rows).forEach(o=>c[o.status]=(c[o.status]||0)+1); return c; }
-  function drawDashboard(){
-    const isAdmin=profile?.role==='admin', data=filterRows(dashboardOrdersCache,'Dash'), counts=countByStatus(data);
-    $('#DashboardStats').innerHTML=`<div class="stat-card"><small>${isAdmin?'Ordini totali':'I miei ordini'}</small><strong data-count="${data.length}">0</strong></div><div class="stat-card"><small>In lavorazione</small><strong data-count="${counts.in_lavorazione||0}">0</strong></div><div class="stat-card"><small>Stand-by</small><strong data-count="${counts.stand_by||0}">0</strong></div><div class="stat-card"><small>Completati</small><strong data-count="${counts.completato||0}">0</strong></div>`; animateNumbers();
-    if(isAdmin){$('#DashboardTitle').textContent='Dashboard lavorazioni'; $('#DashboardSubtitle').textContent='Panoramica ordini, utenti e avanzamento lavori.'; const byUser={}; data.forEach(o=>{const id=o.user_id;(byUser[id] ||= {profile:o.profile,orders:[]}).orders.push(o);}); $('#DashboardCharts').innerHTML=makeDonutCard('Totale stato ordini',counts,data.length,'wide')+Object.values(byUser).map(u=>makeDonutCard(`${esc(u.profile.full_name||u.profile.email||'Utente')} · ${u.orders.length} ordini`,countByStatus(u.orders),u.orders.length,'user-chart')).join('');}
-    else{const owned=dashboardOrdersCache.filter(o=>o.user_id===session.user.id); $('#DashboardTitle').textContent='Dashboard personale'; $('#DashboardSubtitle').textContent='Stati dei miei ordini, totale ordini e ordini condivisi.'; $('#DashboardCharts').innerHTML=makeDonutCard('Stati dei miei ordini',countByStatus(owned),owned.length,'')+makeDonutCard('Ordini condivisi',countByStatus(sharedOrdersCache),sharedOrdersCache.length,'');}
-    syncDashboardMode();
-  }
-  function animateNumbers(){ setTimeout(()=>$$('[data-count]').forEach(el=>{const to=Number(el.dataset.count||0),start=performance.now();const tick=t=>{const p=Math.min(1,(t-start)/650);el.textContent=String(Math.round(to*p));if(p<1)requestAnimationFrame(tick)};requestAnimationFrame(tick);}),20); }
+  async function refreshAll(){renderQuickCards();await renderStats();if(!$('#MineView')?.classList.contains('hidden'))await renderMine();if(profile?.role==='admin'&&!$('#AdminView')?.classList.contains('hidden'))await renderAdmin();}
+  async function renderStats(){let rows=[];try{const{data,error}=await supabase.from('orders').select('*').order('created_at',{ascending:false});if(error)throw error;rows=asArray(data);}catch(e){console.warn('orders stats failed',e);rows=[];}let prof={};if(profile?.role==='admin')prof=await fetchProfiles([...new Set(rows.map(o=>o.user_id))]);dashboardOrdersCache=rows.map(o=>({...o,profile:prof[o.user_id]||{}}));populateDashUsers();drawDashboard();}
+  function populateDashUsers(){const sel=$('#DashUserFilter');if(!sel||profile?.role!=='admin')return;const current=sel.value;const users=[...new Map(dashboardOrdersCache.map(o=>[o.user_id,o.profile])).entries()];sel.innerHTML='<option value="">Tutti gli utenti</option>'+users.map(([id,p])=>`<option value="${id}">${esc(p.full_name||p.email||id)}</option>`).join('');sel.value=current;}
+  function syncDashboardMode(){$('#DashboardCharts')?.classList.toggle('hidden',dashboardMode!=='charts');$('#DashboardStats')?.classList.toggle('hidden',dashboardMode!=='boxes');const b=$('#ToggleDashboardView');if(b)b.textContent=dashboardMode==='charts'?'Vista box':'Vista grafici';}
+  function toggleDashboardMode(){dashboardMode=dashboardMode==='charts'?'boxes':'charts';localStorage.setItem('abitare_lavorazioni_dashboard_mode',dashboardMode);syncDashboardMode();drawDashboard();}
+  function countByStatus(rows){const c=Object.keys(STATUS).reduce((a,k)=>(a[k]=0,a),{});asArray(rows).forEach(o=>c[o.status]=(c[o.status]||0)+1);return c;}
+  function drawDashboard(){const isAdmin=profile?.role==='admin',data=filterRows(dashboardOrdersCache,'Dash'),counts=countByStatus(data);$('#DashboardStats').innerHTML=`<div class="stat-card"><small>${isAdmin?'Ordini totali':'I miei ordini'}</small><strong data-count="${data.length}">0</strong></div><div class="stat-card"><small>In lavorazione</small><strong data-count="${counts.in_lavorazione||0}">0</strong></div><div class="stat-card"><small>Stand-by</small><strong data-count="${counts.stand_by||0}">0</strong></div><div class="stat-card"><small>Completati</small><strong data-count="${counts.completato||0}">0</strong></div>`;animateNumbers();if(isAdmin){$('#DashboardTitle').textContent='Dashboard lavorazioni';$('#DashboardSubtitle').textContent='Panoramica ordini, utenti e avanzamento lavori.';const byUser={};data.forEach(o=>{const id=o.user_id;(byUser[id] ||= {profile:o.profile,orders:[]}).orders.push(o);});$('#DashboardCharts').innerHTML=makeDonutCard('Totale stato ordini',counts,data.length,'wide')+Object.values(byUser).map(u=>makeDonutCard(`${esc(u.profile.full_name||u.profile.email||'Utente')} · ${u.orders.length} ordini`,countByStatus(u.orders),u.orders.length,'user-chart')).join('');}else{const owned=dashboardOrdersCache.filter(o=>o.user_id===session.user.id);$('#DashboardTitle').textContent='Dashboard personale';$('#DashboardSubtitle').textContent='Stati dei miei ordini, totale ordini e ordini condivisi.';$('#DashboardCharts').innerHTML=makeDonutCard('Stati dei miei ordini',countByStatus(owned),owned.length,'')+makeDonutCard('Ordini condivisi',countByStatus(sharedOrdersCache),sharedOrdersCache.length,'');}syncDashboardMode();}
+  function animateNumbers(){setTimeout(()=>$$('[data-count]').forEach(el=>{const to=Number(el.dataset.count||0),start=performance.now();const tick=t=>{const p=Math.min(1,(t-start)/650);el.textContent=String(Math.round(to*p));if(p<1)requestAnimationFrame(tick);};requestAnimationFrame(tick);}),20);}
   function makeDonutCard(title,counts,total,extra=''){const entries=Object.entries(counts).filter(([,v])=>v>0),safe=Math.max(1,total||0);let offset=25;const circles=entries.map(([k,v],idx)=>{const pct=v/safe*100,color=STATUS[k]?.color||USER_COLORS[idx%USER_COLORS.length];const out=`<circle class="donut-segment" r="36" cx="50" cy="50" stroke="${color}" pathLength="100" stroke-dasharray="${pct} ${100-pct}" stroke-dashoffset="${offset}" style="animation-delay:${idx*60}ms"></circle>`;offset-=pct;return out;}).join('');const legend=Object.entries(STATUS).map(([k,s])=>`<div class="legend-row"><div class="legend-left"><span class="legend-dot" style="background:${s.color}"></span><span>${s.label}</span></div><span class="legend-count">${counts[k]||0}</span></div>`).join('');return `<div class="chart-card ${extra}"><div class="chart-title">${title}</div><div class="donut-wrap"><svg class="donut-svg" viewBox="0 0 100 100"><circle class="donut-bg" r="36" cx="50" cy="50"></circle>${circles}</svg><div class="donut-center"><strong>${total||0}</strong><span>ordini</span></div></div><div class="chart-legend">${legend}</div></div>`;}
 
   document.addEventListener('DOMContentLoaded', init);
