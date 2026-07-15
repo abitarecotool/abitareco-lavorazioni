@@ -8,7 +8,7 @@
 
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => Array.from(document.querySelectorAll(s));
-  const arr = (v) => Array.isArray(v) ? v : [];
+  const asArray = (v) => Array.isArray(v) ? v : [];
 
   const STATUS = {
     inviato: { label:'Inviato', pct:10, color:'#2a2a2a' },
@@ -54,8 +54,8 @@
   function fmtDate(v){ if(!v) return '—'; try{return new Intl.DateTimeFormat('it-IT').format(new Date(v));}catch{return v;} }
   function dateKey(v){ if(!v) return ''; try{return new Date(v).toISOString().slice(0,10);}catch{return String(v).slice(0,10);} }
   function priorityBadge(p){ return `<span class="priority-badge priority-${p || 'media'}">${esc(PRIORITY_LABELS[p] || 'Media')}</span>`; }
-  function statusBadge(st){ const s=STATUS[st] || STATUS.inviato; return `<span class="status-badge status-${st || 'inviato'}">${s.label}</span>`; }
-  function progress(st){ const s=STATUS[st] || STATUS.inviato; return `<div class="progressbar progress-${st || 'inviato'}"><span style="width:${s.pct}%"></span></div>`; }
+  function statusBadge(st){ const v=STATUS[st] || STATUS.inviato; return `<span class="status-badge status-${st || 'inviato'}">${v.label}</span>`; }
+  function progress(st){ const v=STATUS[st] || STATUS.inviato; return `<div class="progressbar progress-${st || 'inviato'}"><span style="width:${v.pct}%"></span></div>`; }
 
   function syncMenuIcons(){
     $$('#SideMenu li').forEach(li => {
@@ -74,6 +74,7 @@
     renderWorkTypes();
     syncDashboardMode();
     syncMenuIcons();
+    ensureCartWidget();
 
     const { data } = await supabase.auth.getSession();
     session = data.session;
@@ -119,8 +120,7 @@
 
   async function loadProfiles(){
     const { data, error } = await supabase.from('profiles').select('*').eq('active', true).order('full_name');
-    if(error){ console.warn(error); profiles=[]; }
-    else profiles = arr(data);
+    profiles = error ? [] : asArray(data);
     renderCollabPicker();
   }
 
@@ -196,9 +196,27 @@
     $$('.worktype-card').forEach(c => { const on=selectedWorks.has(c.dataset.key); c.classList.toggle('is-selected', on); c.querySelector('.worktype-add').textContent = on ? '−' : '+'; });
     const items = WORK_TYPES.filter(w => selectedWorks.has(w.key));
     $('#SelectedWorkWrap')?.classList.toggle('hidden', !items.length);
-    const list = $('#SelectedWorkList'); if(!list) return;
-    list.innerHTML = items.map(w => `<div class="selected-work-row"><div><strong>${esc(w.label)}</strong><span class="muted">${esc(w.copy)}</span></div><button type="button" class="selected-work-remove" data-key="${w.key}">×</button></div>`).join('');
-    $$('.selected-work-remove').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); selectedWorks.delete(b.dataset.key); syncWorkSelection(); }));
+    const list = $('#SelectedWorkList'); if(list) {
+      list.innerHTML = items.map(w => `<div class="selected-work-row"><div><strong>${esc(w.label)}</strong><span class="muted">${esc(w.copy)}</span></div><button type="button" class="selected-work-remove" data-key="${w.key}">×</button></div>`).join('');
+      $$('.selected-work-remove').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); selectedWorks.delete(b.dataset.key); syncWorkSelection(); }));
+    }
+    updateCartWidget();
+  }
+
+  function ensureCartWidget(){
+    if($('#WorkCartWidget')) return;
+    const div = document.createElement('div');
+    div.id = 'WorkCartWidget';
+    div.className = 'work-cart-widget hidden';
+    div.innerHTML = `<div class="cart-dot">0</div><div><strong>Lavorazioni selezionate</strong><span>Apri il riepilogo in basso</span></div>`;
+    document.body.appendChild(div);
+  }
+  function updateCartWidget(){
+    const w = $('#WorkCartWidget'); if(!w) return;
+    const n = selectedWorks.size;
+    w.classList.toggle('hidden', n === 0);
+    w.querySelector('.cart-dot').textContent = String(n);
+    w.querySelector('span').textContent = n === 1 ? '1 lavorazione nel carrello' : `${n} lavorazioni nel carrello`;
   }
 
   function renderCollabPicker(){
@@ -243,7 +261,7 @@
       if(itemErr) throw itemErr;
       if(selectedCollabs.size){
         try{ await supabase.from('order_collaborators').insert([...selectedCollabs].map(user_id => ({ order_id:order.id, user_id }))); }
-        catch(collabErr){ console.warn('Collab non salvato (migrazione non eseguita?)', collabErr); }
+        catch(collabErr){ console.warn('Collab non salvato', collabErr); }
       }
       await notifyZapier(order, items, payload);
       resetOrderForm(); toast(`Ordine ${order.order_number} creato correttamente.`); navigate(profile?.role === 'admin' ? 'admin' : 'mine');
@@ -251,17 +269,22 @@
     finally{ $('#SubmitOrder').disabled=false; $('#SubmitOrder').textContent='Invia ordine'; }
   }
 
-  async function fetchItems(ids){ if(!ids.length) return {}; const {data,error}=await supabase.from('order_items').select('*').in('order_id',ids).order('created_at'); if(error){console.warn(error); return{};} return arr(data).reduce((a,it)=>{(a[it.order_id] ||= []).push(it); return a;},{}); }
-  async function fetchProfiles(ids){ if(!ids.length) return {}; const {data,error}=await supabase.from('profiles').select('*').in('id',ids); if(error){console.warn(error); return{};} return arr(data).reduce((a,p)=>{a[p.id]=p; return a;},{}); }
+  async function fetchItems(ids){ if(!ids.length) return {}; const {data,error}=await supabase.from('order_items').select('*').in('order_id',ids).order('created_at'); if(error){console.warn(error); return{};} return asArray(data).reduce((a,it)=>{(a[it.order_id] ||= []).push(it); return a;},{}); }
+  async function fetchProfiles(ids){ if(!ids.length) return {}; const {data,error}=await supabase.from('profiles').select('*').in('id',ids); if(error){console.warn(error); return{};} return asArray(data).reduce((a,p)=>{a[p.id]=p; return a;},{}); }
+  async function fetchCollabMap(orderIds){
+    if(!orderIds.length) return {};
+    try{ const {data,error}=await supabase.from('order_collaborators').select('order_id,user_id').in('order_id',orderIds); if(error) throw error; return asArray(data).reduce((a,r)=>{(a[r.order_id] ||= []).push(r.user_id); return a;},{}); }
+    catch(e){ console.warn('collab map skipped', e); return {}; }
+  }
   async function fetchSharedOrders(){
-    try{ const {data:links,error}=await supabase.from('order_collaborators').select('order_id').eq('user_id',session.user.id); if(error) throw error; const ids=arr(links).map(x=>x.order_id); if(!ids.length) return []; const {data,error:e2}=await supabase.from('orders').select('*').in('id',ids).order('created_at',{ascending:false}); if(e2) throw e2; return arr(data); }catch(e){ return []; }
+    try{ const {data:links,error}=await supabase.from('order_collaborators').select('order_id').eq('user_id',session.user.id); if(error) throw error; const ids=asArray(links).map(x=>x.order_id); if(!ids.length) return []; const {data,error:e2}=await supabase.from('orders').select('*').in('id',ids).order('created_at',{ascending:false}); if(e2) throw e2; return asArray(data); }catch(e){ return []; }
   }
 
   async function renderMine(){
     const box=$('#MyOrdersList'); box.innerHTML='<div class="empty">Caricamento ordini...</div>';
     const {data,error}=await supabase.from('orders').select('*').order('created_at',{ascending:false});
     if(error){box.innerHTML=`<div class="empty">Errore: ${esc(error.message)}</div>`; return;}
-    const own=arr(data); const shared=await fetchSharedOrders();
+    const own=asArray(data); const shared=await fetchSharedOrders();
     const all=[...own,...shared.filter(s=>!own.some(o=>o.id===s.id))];
     const items=await fetchItems(all.map(o=>o.id));
     myOrdersCache=all.map(o=>({...o, items:items[o.id]||[], is_shared:shared.some(s=>s.id===o.id)}));
@@ -274,10 +297,11 @@
     const box=$('#AdminOrdersList'); box.innerHTML='<div class="empty">Caricamento ordini admin...</div>';
     const {data,error}=await supabase.from('orders').select('*').order('created_at',{ascending:false});
     if(error){box.innerHTML=`<div class="empty">Errore: ${esc(error.message)}</div>`; return;}
-    const rows=arr(data);
+    const rows=asArray(data);
     const prof=await fetchProfiles([...new Set(rows.map(o=>o.user_id))]);
     const items=await fetchItems(rows.map(o=>o.id));
-    adminOrdersCache=rows.map(o=>({...o, profile:prof[o.user_id]||{}, items:items[o.id]||[]}));
+    const collabs=await fetchCollabMap(rows.map(o=>o.id));
+    adminOrdersCache=rows.map(o=>({...o, profile:prof[o.user_id]||{}, items:items[o.id]||[], collab_ids:collabs[o.id]||[]}));
     drawAdminList();
   }
 
@@ -287,29 +311,40 @@
     const pr=$('#'+scope+'PriorityFilter')?.value||'';
     const dt=$('#'+scope+'DateFilter')?.value||'';
     const user=$('#'+scope+'UserFilter')?.value||'';
-    return arr(rows).filter(o=>{const hay=[o.order_number,o.subject,o.project_name,o.commessa,o.request_type,o.profile?.email,o.profile?.full_name].join(' ').toLowerCase(); return(!q||hay.includes(q))&&(!st||o.status===st)&&(!pr||o.priority===pr)&&(!dt||dateKey(o.created_at)===dt)&&(!user||o.user_id===user);});
+    return asArray(rows).filter(o=>{const hay=[o.order_number,o.subject,o.project_name,o.commessa,o.request_type,o.profile?.email,o.profile?.full_name].join(' ').toLowerCase(); return(!q||hay.includes(q))&&(!st||o.status===st)&&(!pr||o.priority===pr)&&(!dt||dateKey(o.created_at)===dt)&&(!user||o.user_id===user);});
   }
 
   function drawMineList(){ const rows=filterRows(myOrdersCache,'Mine'); $('#MyOrdersList').innerHTML=rows.length?rows.map(o=>orderCard(o,o.items||[],false)).join(''):'<div class="empty">Nessun ordine trovato.</div>'; bindOrderAccordions('#MyOrdersList'); }
   function drawAdminList(){ const rows=filterRows(adminOrdersCache,'Admin'); $('#AdminOrdersList').innerHTML=rows.length?rows.map(o=>orderCard(o,o.items||[],true)).join(''):'<div class="empty">Nessun ordine trovato.</div>'; bindOrderAccordions('#AdminOrdersList'); bindAdminDirty(); }
   function bindOrderAccordions(scope){ $$(scope+' .order-summary').forEach(btn=>btn.addEventListener('click',()=>btn.closest('.order-card').classList.toggle('is-open'))); }
 
+  function adminCollabOptions(o){
+    const users = profiles.filter(p => p.role !== 'admin' && p.id !== o.user_id);
+    return `<div class="admin-collab-box"><label>Collab</label><div class="admin-collab-list">${users.map(p=>`<label class="admin-collab-option"><input type="checkbox" class="admin-collab-check" value="${p.id}" data-original="${o.collab_ids?.includes(p.id)?'true':'false'}" ${o.collab_ids?.includes(p.id)?'checked':''}/><span>${esc(p.full_name||p.email)}</span></label>`).join('') || '<span class="muted">Nessun utente disponibile</span>'}</div></div>`;
+  }
+
   function orderCard(o, items, isAdmin){
     const type=items[0]?.item_type || o.request_type || 'Altro';
     const user=isAdmin?`<div class="admin-user">${esc(o.profile?.full_name||'Utente')} · ${esc(o.profile?.email||o.user_id)}</div>`:'';
     const shared=o.is_shared?'<span class="status-badge status-inviato">Condiviso</span>':'';
     const itemHtml=items.length?`<div class="items-mini"><strong>Righe:</strong><ul>${items.map(i=>`<li>${esc(i.quantity)}× ${esc(i.item_title)} <span class="muted">(${esc(i.item_type)})</span></li>`).join('')}</ul></div>`:'';
-    const adminData=isAdmin?`<div class="admin-data-grid"><div class="admin-field"><label>Progetto/Cantiere</label><input class="input admin-project" data-original="${esc(o.project_name||'')}" value="${esc(o.project_name||'')}" /></div><div class="admin-field"><label>Commessa</label><input class="input admin-commessa" data-original="${esc(o.commessa||'')}" value="${esc(o.commessa||'')}" /></div><div class="admin-field"><label>Consegna richiesta</label><input type="date" class="input admin-delivery" data-original="${esc(o.requested_delivery_date||'')}" value="${esc(o.requested_delivery_date||'')}" /></div><div class="admin-field"><label>Oggetto</label><input class="input admin-subject" data-original="${esc(o.subject||'')}" value="${esc(o.subject||'')}" /></div></div>`:'';
-    const adminHtml=isAdmin?`<div class="admin-edit-grid"><div class="admin-field"><label>Stato</label><select class="input admin-status" data-original="${esc(o.status)}">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${o.status===k?'selected':''}>${v.label}</option>`).join('')}</select></div><div class="admin-field"><label>Nota visibile</label><textarea class="input admin-public" data-original="${esc(o.public_note||'')}">${esc(o.public_note||'')}</textarea></div><div class="admin-field"><label>Nota interna</label><textarea class="input admin-internal" data-original="${esc(o.internal_note||'')}">${esc(o.internal_note||'')}</textarea></div><div class="admin-actions-row"><button type="button" class="btn-primary admin-save" disabled>Salva</button><button type="button" class="btn-danger admin-delete">Elimina</button></div></div>`:'';
-    return `<article class="order-card${isAdmin?' admin-card':''}" data-id="${o.id}"><button type="button" class="order-summary"><div class="order-cell"><span class="order-number">${esc(o.order_number)}</span></div><div class="order-cell"><strong class="order-title">${esc(o.subject)}</strong>${user}</div><div class="order-cell"><small>Cantiere</small><strong>${esc(o.project_name||'—')}</strong></div><div class="order-cell"><small>Commessa</small><strong>${esc(o.commessa||'—')}</strong></div><div class="order-cell summary-tags">${priorityBadge(o.priority)}<span class="status-badge status-inviato">${esc(type)}</span>${statusBadge(o.status)}${shared}</div><div class="order-cell"><strong>${esc(o.requested_delivery_date?fmtDate(o.requested_delivery_date):'—')}</strong><small>Consegna</small></div><div class="order-cell"><span class="order-chevron">⌄</span></div></button><div class="order-detail"><p class="order-desc">${esc(o.description)}</p><div class="detail-grid"><div><small>Progetto/Cantiere</small><strong>${esc(o.project_name||'—')}</strong></div><div><small>Commessa</small><strong>${esc(o.commessa||'—')}</strong></div><div><small>Consegna richiesta</small><strong>${esc(o.requested_delivery_date?fmtDate(o.requested_delivery_date):'—')}</strong></div><div><small>Creato il</small><strong>${esc(fmtDate(o.created_at))}</strong></div></div>${adminData}${o.public_note?`<div class="items-mini"><strong>Nota admin:</strong><p class="muted">${esc(o.public_note)}</p></div>`:''}${itemHtml}<div class="order-footer">${progress(o.status)}<span class="muted">${STATUS[o.status]?.pct||10}%</span></div>${adminHtml}</div></article>`;
+    const adminData=isAdmin?`<div class="admin-data-grid admin-data-grid-v2"><div class="admin-field"><label>Progetto/Cantiere</label><input class="input admin-project" data-original="${esc(o.project_name||'')}" value="${esc(o.project_name||'')}" /></div><div class="admin-field"><label>Commessa</label><input class="input admin-commessa" data-original="${esc(o.commessa||'')}" value="${esc(o.commessa||'')}" /></div><div class="admin-field"><label>Consegna richiesta</label><input type="date" class="input admin-delivery" data-original="${esc(o.requested_delivery_date||'')}" value="${esc(o.requested_delivery_date||'')}" /></div><div class="admin-field"><label>Oggetto</label><input class="input admin-subject" data-original="${esc(o.subject||'')}" value="${esc(o.subject||'')}" /></div><div class="admin-field"><label>Priorità</label><select class="input admin-priority" data-original="${esc(o.priority||'media')}">${Object.entries(PRIORITY_LABELS).map(([k,v])=>`<option value="${k}" ${o.priority===k?'selected':''}>${v}</option>`).join('')}</select></div>${adminCollabOptions(o)}</div>`:'';
+    const adminHtml=isAdmin?`<div class="admin-edit-grid admin-edit-grid-v2"><div class="admin-field"><label>Stato</label><select class="input admin-status" data-original="${esc(o.status)}">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${o.status===k?'selected':''}>${v.label}</option>`).join('')}</select></div><div class="admin-actions-row"><button type="button" class="btn-primary admin-save" disabled>Salva</button><button type="button" class="btn-danger admin-delete">Elimina</button></div></div>`:'';
+    return `<article class="order-card${isAdmin?' admin-card':''}" data-id="${o.id}"><button type="button" class="order-summary"><div class="order-cell"><span class="order-number">${esc(o.order_number)}</span></div><div class="order-cell"><strong class="order-title">${esc(o.subject)}</strong>${user}</div><div class="order-cell"><small>Cantiere</small><strong>${esc(o.project_name||'—')}</strong></div><div class="order-cell"><small>Commessa</small><strong>${esc(o.commessa||'—')}</strong></div><div class="order-cell summary-tags">${priorityBadge(o.priority)}<span class="status-badge status-inviato">${esc(type)}</span>${statusBadge(o.status)}${shared}</div><div class="order-cell"><strong>${esc(o.requested_delivery_date?fmtDate(o.requested_delivery_date):'—')}</strong><small>Consegna</small></div><div class="order-cell"><span class="order-chevron">⌄</span></div></button><div class="order-detail"><p class="order-desc">${esc(o.description)}</p><div class="detail-grid"><div><small>Progetto/Cantiere</small><strong>${esc(o.project_name||'—')}</strong></div><div><small>Commessa</small><strong>${esc(o.commessa||'—')}</strong></div><div><small>Consegna richiesta</small><strong>${esc(o.requested_delivery_date?fmtDate(o.requested_delivery_date):'—')}</strong></div><div><small>Creato il</small><strong>${esc(fmtDate(o.created_at))}</strong></div></div>${adminData}${itemHtml}<div class="order-footer">${progress(o.status)}<span class="muted">${STATUS[o.status]?.pct||10}%</span></div>${adminHtml}</div></article>`;
   }
 
   function bindAdminDirty(){
     $$('#AdminOrdersList .order-card').forEach(card=>{
       const id=card.dataset.id, save=card.querySelector('.admin-save');
-      const fields=Array.from(card.querySelectorAll('.admin-status,.admin-public,.admin-internal,.admin-project,.admin-commessa,.admin-delivery,.admin-subject'));
-      const check=()=>save.disabled=!fields.some(f=>String(f.value||'')!==String(f.dataset.original||''));
+      const fields=Array.from(card.querySelectorAll('.admin-status,.admin-priority,.admin-project,.admin-commessa,.admin-delivery,.admin-subject'));
+      const checks=Array.from(card.querySelectorAll('.admin-collab-check'));
+      const check=()=>{
+        const dirtyFields=fields.some(f=>String(f.value||'')!==String(f.dataset.original||''));
+        const dirtyChecks=checks.some(c=>String(c.checked)!==String(c.dataset.original === 'true'));
+        save.disabled=!(dirtyFields||dirtyChecks);
+      };
       fields.forEach(f=>{f.addEventListener('input',check);f.addEventListener('change',check);});
+      checks.forEach(c=>c.addEventListener('change',check));
       save.addEventListener('click',()=>saveAdminOrder(card,id));
       card.querySelector('.admin-delete')?.addEventListener('click',()=>deleteAdminOrder(id));
       check();
@@ -317,10 +352,15 @@
   }
 
   async function saveAdminOrder(card,id){
-    const payload={ status:card.querySelector('.admin-status').value, public_note:card.querySelector('.admin-public').value.trim()||null, internal_note:card.querySelector('.admin-internal').value.trim()||null, project_name:card.querySelector('.admin-project').value.trim()||null, commessa:card.querySelector('.admin-commessa').value.trim()||null, requested_delivery_date:card.querySelector('.admin-delivery').value||null, subject:card.querySelector('.admin-subject').value.trim()||'Senza oggetto' };
+    const payload={ status:card.querySelector('.admin-status').value, priority:card.querySelector('.admin-priority').value, project_name:card.querySelector('.admin-project').value.trim()||null, commessa:card.querySelector('.admin-commessa').value.trim()||null, requested_delivery_date:card.querySelector('.admin-delivery').value||null, subject:card.querySelector('.admin-subject').value.trim()||'Senza oggetto' };
     const old=adminOrdersCache.find(o=>o.id===id);
     const {error}=await supabase.from('orders').update(payload).eq('id',id);
     if(error){toast('Errore aggiornamento: '+error.message); return;}
+    const selected=[...card.querySelectorAll('.admin-collab-check:checked')].map(c=>c.value);
+    try{
+      await supabase.from('order_collaborators').delete().eq('order_id',id);
+      if(selected.length) await supabase.from('order_collaborators').insert(selected.map(user_id=>({order_id:id,user_id})));
+    }catch(e){ console.warn('collab update failed', e); }
     if(old&&old.status!==payload.status) await supabase.from('order_status_history').insert({order_id:id,old_status:old.status,new_status:payload.status,changed_by:session.user.id});
     toast('Ordine aggiornato.'); await renderAdmin(); await renderStats();
   }
@@ -329,7 +369,7 @@
   async function refreshAll(){ renderQuickCards(); await renderStats(); if(!$('#MineView')?.classList.contains('hidden')) await renderMine(); if(profile?.role==='admin' && !$('#AdminView')?.classList.contains('hidden')) await renderAdmin(); }
   async function renderStats(){
     let rows=[];
-    try{ const {data,error}=await supabase.from('orders').select('*').order('created_at',{ascending:false}); if(error) throw error; rows=arr(data); } catch(e){ console.warn('orders stats failed', e); rows=[]; }
+    try{ const {data,error}=await supabase.from('orders').select('*').order('created_at',{ascending:false}); if(error) throw error; rows=asArray(data); } catch(e){ console.warn('orders stats failed', e); rows=[]; }
     let prof={}; if(profile?.role==='admin') prof=await fetchProfiles([...new Set(rows.map(o=>o.user_id))]);
     dashboardOrdersCache=rows.map(o=>({...o,profile:prof[o.user_id]||{}}));
     populateDashUsers(); drawDashboard();
@@ -337,7 +377,7 @@
   function populateDashUsers(){ const sel=$('#DashUserFilter'); if(!sel||profile?.role!=='admin') return; const current=sel.value; const users=[...new Map(dashboardOrdersCache.map(o=>[o.user_id,o.profile])).entries()]; sel.innerHTML='<option value="">Tutti gli utenti</option>'+users.map(([id,p])=>`<option value="${id}">${esc(p.full_name||p.email||id)}</option>`).join(''); sel.value=current; }
   function syncDashboardMode(){ $('#DashboardCharts')?.classList.toggle('hidden',dashboardMode!=='charts'); $('#DashboardStats')?.classList.toggle('hidden',dashboardMode!=='boxes'); const b=$('#ToggleDashboardView'); if(b)b.textContent=dashboardMode==='charts'?'Vista box':'Vista grafici'; }
   function toggleDashboardMode(){ dashboardMode=dashboardMode==='charts'?'boxes':'charts'; localStorage.setItem('abitare_lavorazioni_dashboard_mode',dashboardMode); syncDashboardMode(); drawDashboard(); }
-  function countByStatus(rows){ const c=Object.keys(STATUS).reduce((a,k)=>(a[k]=0,a),{}); arr(rows).forEach(o=>c[o.status]=(c[o.status]||0)+1); return c; }
+  function countByStatus(rows){ const c=Object.keys(STATUS).reduce((a,k)=>(a[k]=0,a),{}); asArray(rows).forEach(o=>c[o.status]=(c[o.status]||0)+1); return c; }
   function drawDashboard(){
     const isAdmin=profile?.role==='admin';
     const data=filterRows(dashboardOrdersCache,'Dash');
