@@ -28,3 +28,6 @@ Carica le icone in assets/icons con questi nomi:
 ## Email
 
 Le email automatiche richiedono Supabase Edge Function + provider email esterno.
+
+
+deploy refresh
