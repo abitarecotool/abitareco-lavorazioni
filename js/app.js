@@ -129,11 +129,31 @@
   }
 
   async function login(){
-    $('#AuthError').textContent='';
+    const errBox = $('#AuthError');
+    if(errBox) errBox.textContent='';
+    const btn = $('#AuthConfirm');
     const email=$('#AuthEmail').value.trim(); const password=$('#AuthPassword').value;
-    if(!email || !password){ $('#AuthError').textContent='Inserisci email e password.'; return; }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if(error) $('#AuthError').textContent = error.message || 'Credenziali non valide.';
+    if(!email || !password){ if(errBox) errBox.textContent='Inserisci email e password.'; return; }
+    if(btn){ btn.disabled = true; btn.textContent = 'Accesso...'; }
+    try{
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+      session = data.session;
+      if(!session){
+        const { data:sessionData } = await supabase.auth.getSession();
+        session = sessionData.session;
+      }
+      if(session){
+        await loadProfile();
+        await loadProfiles();
+        showAuth(false);
+        await refreshAll();
+      }
+    }catch(error){
+      if(errBox) errBox.textContent = error.message || 'Credenziali non valide.';
+    }finally{
+      if(btn){ btn.disabled = false; btn.textContent = 'Accedi'; }
+    }
   }
 
   function fillStatusSelects(){
@@ -230,8 +250,8 @@
     div.querySelector('.cart-close')?.addEventListener('click',e=>{e.stopPropagation();localStorage.setItem('abitare_lavorazioni_cart_hidden','true');div.classList.add('is-collapsed');mini.classList.add('is-collapsed');updateCartWidget();});
     mini.addEventListener('click',()=>{localStorage.setItem('abitare_lavorazioni_cart_hidden','false');div.classList.remove('is-collapsed');mini.classList.remove('is-collapsed');updateCartWidget();});
     let drag=null;
-    const start=e=>{if(e.target.closest('.cart-close'))return;const p=e.touches?e.touches[0]:e;const r=div.getBoundingClientRect();drag={dx:p.clientX-r.left,dy:p.clientY-r.top};div.classList.add('is-dragging');document.addEventListener('mousemove',move);document.addEventListener('mouseup',stop);document.addEventListener('touchmove',move,{passive:false});document.addEventListener('touchend',stop);};
-    const move=e=>{if(!drag)return;if(e.cancelable)e.preventDefault();const p=e.touches?e.touches[0]:e;const w=div.offsetWidth,h=div.offsetHeight;const left=Math.max(10,Math.min(window.innerWidth-w-10,p.clientX-drag.dx));const top=Math.max(10,Math.min(window.innerHeight-h-56,p.clientY-drag.dy));div.style.left=left+'px';div.style.top=top+'px';div.style.right='auto';div.style.bottom='auto';localStorage.setItem('abitare_lavorazioni_cart_pos',JSON.stringify({left,top}));};
+    const start=e=>{if(e.target.closest('.cart-close'))return;const p=e.touches?e.touches[0]:e;const r=div.getBoundingClientRect();div.style.width=r.width+'px';div.style.left=r.left+'px';div.style.top=r.top+'px';div.style.right='auto';div.style.bottom='auto';drag={dx:p.clientX-r.left,dy:p.clientY-r.top};div.classList.add('is-dragging');document.addEventListener('mousemove',move);document.addEventListener('mouseup',stop);document.addEventListener('touchmove',move,{passive:false});document.addEventListener('touchend',stop);};
+    const move=e=>{if(!drag)return;if(e.cancelable)e.preventDefault();const p=e.touches?e.touches[0]:e;const w=div.offsetWidth,h=div.offsetHeight;const left=Math.max(10,Math.min(window.innerWidth-w-10,p.clientX-drag.dx));const top=Math.max(10,Math.min(window.innerHeight-h-56,p.clientY-drag.dy));div.style.left=left+'px';div.style.top=top+'px';div.style.right='auto';div.style.bottom='auto';div.style.width=w+'px';localStorage.setItem('abitare_lavorazioni_cart_pos',JSON.stringify({left,top}));};
     const stop=()=>{drag=null;div.classList.remove('is-dragging');document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',stop);document.removeEventListener('touchmove',move);document.removeEventListener('touchend',stop);};
     div.addEventListener('mousedown',start);
     div.addEventListener('touchstart',start,{passive:true});
