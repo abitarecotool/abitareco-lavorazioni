@@ -1,1 +1,5 @@
 .admin-filters{margin-bottom:14px}.admin .order-card{background:#fff}.admin-actions{margin-top:12px}
+
+/* DARK MODE - Admin */
+.admin .order-card{background:linear-gradient(180deg,#1b1b1e,#151516)!important;border-color:rgba(255,255,255,.11)!important}.admin-actions{color:#fff!important}.admin-filters{position:relative;z-index:2}
+
