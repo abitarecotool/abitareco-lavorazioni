@@ -207,8 +207,45 @@
     updateCartWidget();
   }
 
-  function ensureCartWidget(){ if($('#WorkCartWidget')) return; const div=document.createElement('div'); div.id='WorkCartWidget'; div.className='work-cart-widget hidden'; div.innerHTML=`<div class="cart-dot">0</div><div><strong>Lavorazioni selezionate</strong><span>Apri il riepilogo in basso</span></div>`; document.body.appendChild(div); }
-  function updateCartWidget(){ const w=$('#WorkCartWidget'); if(!w) return; const n=[...selectedWorks.values()].reduce((a,b)=>a+Number(b||0),0); w.classList.toggle('hidden',n===0); w.querySelector('.cart-dot').textContent=String(n); w.querySelector('span').textContent=n===1?'1 lavorazione nel carrello':`${n} lavorazioni nel carrello`; }
+  function ensureCartWidget(){
+    if($('#WorkCartWidget')) return;
+    const div=document.createElement('div');
+    div.id='WorkCartWidget';
+    div.className='work-cart-widget hidden';
+    div.innerHTML=`<button type="button" class="cart-close" aria-label="Nascondi riepilogo lavorazioni">×</button><div class="cart-grip" aria-hidden="true">⋮⋮</div><div class="cart-dot">0</div><div><strong>Lavorazioni selezionate</strong><span>Apri il riepilogo in basso</span></div>`;
+    document.body.appendChild(div);
+    const mini=document.createElement('button');
+    mini.id='WorkCartMini';
+    mini.type='button';
+    mini.className='work-cart-mini hidden';
+    mini.innerHTML=`<strong>0</strong><span>Lavorazioni</span>`;
+    document.body.appendChild(mini);
+    const saved=localStorage.getItem('abitare_lavorazioni_cart_pos');
+    if(saved){
+      try{const p=JSON.parse(saved); if(Number.isFinite(p.left)&&Number.isFinite(p.top)){div.style.left=p.left+'px';div.style.top=p.top+'px';div.style.right='auto';div.style.bottom='auto';}}catch(e){}
+    }
+    const hidden=localStorage.getItem('abitare_lavorazioni_cart_hidden')==='true';
+    div.classList.toggle('is-collapsed',hidden);
+    mini.classList.toggle('is-collapsed',hidden);
+    div.querySelector('.cart-close')?.addEventListener('click',e=>{e.stopPropagation();localStorage.setItem('abitare_lavorazioni_cart_hidden','true');div.classList.add('is-collapsed');mini.classList.add('is-collapsed');updateCartWidget();});
+    mini.addEventListener('click',()=>{localStorage.setItem('abitare_lavorazioni_cart_hidden','false');div.classList.remove('is-collapsed');mini.classList.remove('is-collapsed');updateCartWidget();});
+    let drag=null;
+    const start=e=>{if(e.target.closest('.cart-close'))return;const p=e.touches?e.touches[0]:e;const r=div.getBoundingClientRect();drag={dx:p.clientX-r.left,dy:p.clientY-r.top};div.classList.add('is-dragging');document.addEventListener('mousemove',move);document.addEventListener('mouseup',stop);document.addEventListener('touchmove',move,{passive:false});document.addEventListener('touchend',stop);};
+    const move=e=>{if(!drag)return;if(e.cancelable)e.preventDefault();const p=e.touches?e.touches[0]:e;const w=div.offsetWidth,h=div.offsetHeight;const left=Math.max(10,Math.min(window.innerWidth-w-10,p.clientX-drag.dx));const top=Math.max(10,Math.min(window.innerHeight-h-56,p.clientY-drag.dy));div.style.left=left+'px';div.style.top=top+'px';div.style.right='auto';div.style.bottom='auto';localStorage.setItem('abitare_lavorazioni_cart_pos',JSON.stringify({left,top}));};
+    const stop=()=>{drag=null;div.classList.remove('is-dragging');document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',stop);document.removeEventListener('touchmove',move);document.removeEventListener('touchend',stop);};
+    div.addEventListener('mousedown',start);
+    div.addEventListener('touchstart',start,{passive:true});
+  }
+  function updateCartWidget(){
+    const w=$('#WorkCartWidget'), mini=$('#WorkCartMini'); if(!w) return;
+    const n=[...selectedWorks.values()].reduce((a,b)=>a+Number(b||0),0);
+    const collapsed=localStorage.getItem('abitare_lavorazioni_cart_hidden')==='true';
+    w.classList.toggle('hidden',n===0 || collapsed);
+    w.classList.toggle('is-collapsed',collapsed);
+    w.querySelector('.cart-dot').textContent=String(n);
+    w.querySelector('span').textContent=n===1?'1 lavorazione nel carrello':`${n} lavorazioni nel carrello`;
+    if(mini){mini.classList.toggle('hidden',n===0 || !collapsed);mini.classList.toggle('is-collapsed',collapsed);mini.querySelector('strong').textContent=String(n);mini.querySelector('span').textContent=n===1?'Lavorazione':'Lavorazioni';}
+  }
 
   function renderCollabPicker(){
     const panel=$('#CollabPanel'); if(!panel) return;
